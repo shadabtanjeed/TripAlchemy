@@ -30,8 +30,9 @@ def signup_view(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            email = data["email"]
+            username = data["username"]
             password = data["password"]
+            email = f"{username}@email.com"
             user = auth.create_user(email=email, password=password)
             return JsonResponse({"success": True, "user_id": user.uid})
         except Exception as e:

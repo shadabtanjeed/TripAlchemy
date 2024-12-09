@@ -88,6 +88,12 @@
             width: 100%;
             border-radius: 0.5rem;
             text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .submit:hover {
+            background-color: #423bbd;
+            cursor: pointer;
         }
 
         .signup-link {
@@ -145,7 +151,7 @@
         }
 
         .toast #okBtn:hover {
-            background-color: #3a34a8;
+            background-color: #423bbd;
         }
     </style>
 </head>
@@ -202,7 +208,6 @@
             event.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const email = username + '@email.com';
 
             fetch("{% url 'signup' %}", {
                 method: 'POST',
@@ -210,7 +215,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
-                body: JSON.stringify({ email: email, password: password })
+                body: JSON.stringify({ username: username, password: password })
             })
                 .then(response => response.json())
                 .then(data => {
