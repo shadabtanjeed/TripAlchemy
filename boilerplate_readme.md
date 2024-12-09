@@ -17,7 +17,13 @@ A simple authentication boilerplate using Django and Firebase Authentication.
 │   ├── views.py              # Auth views
 │   └── templates/
 │       ├── login_page.html
-│       └── signup_page.htmlSS
+│       └── signup_page.html
+├── home_page/
+│   ├── __init__.py
+│   ├── urls.py               
+│   ├── views.py              
+│   └── templates/
+│       ├── home_page.html    # Landing page after successful login
 ├── .env                      # Environment variables
 └── requirements.txt
 ```
