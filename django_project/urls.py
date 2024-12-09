@@ -21,4 +21,5 @@ from django.urls import include, path
 urlpatterns = [
     path("", include("user_authentication.urls")),
     path("user_authentication/", include("user_authentication.urls")),
+    path("home/", include("home_page.urls")),
 ]

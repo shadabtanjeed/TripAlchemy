@@ -13,6 +13,7 @@ def index(request):
 
 
 def login_view(request):
+
     return render(
         request, "login_page.html", {"firebase_config": settings.FIREBASE_CONFIG}
     )
