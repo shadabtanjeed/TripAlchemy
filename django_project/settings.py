@@ -16,6 +16,20 @@ from .firebase import initialize_firebase
 
 from django.contrib.messages import constants as messages
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+FIREBASE_CONFIG = {
+    "apiKey": os.getenv("FIREBASE_API_KEY"),
+    "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN"),
+    "projectId": os.getenv("FIREBASE_PROJECT_ID"),
+    "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET"),
+    "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID"),
+    "appId": os.getenv("FIREBASE_APP_ID"),
+}
+
 
 # Initialize Firebase when Django starts
 initialize_firebase()

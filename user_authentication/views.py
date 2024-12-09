@@ -1,19 +1,11 @@
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
-from django.db import connection
-from django.db.utils import DatabaseError
-import hashlib
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-import json
-from django.http import JsonResponse
 from django.shortcuts import render
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 import firebase_admin
 from firebase_admin import auth
-from django.contrib import messages
+
+from django.conf import settings
 
 
 def index(request):
@@ -21,8 +13,9 @@ def index(request):
 
 
 def login_view(request):
-
-    return render(request, "login_page.html")
+    return render(
+        request, "login_page.html", {"firebase_config": settings.FIREBASE_CONFIG}
+    )
 
 
 @csrf_exempt
