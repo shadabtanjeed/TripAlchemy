@@ -45,4 +45,8 @@ def index(request):
     username = request.GET.get("username")
     if not username:
         return redirect("/user_authentication/login/")
-    return render(request, "home_page.html", {"username": username})
+    return render(
+        request,
+        "home_page.html",
+        {"username": username, "firebase_config": settings.FIREBASE_CONFIG},
+    )
