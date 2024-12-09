@@ -133,6 +133,8 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            z-index: 1001;
+            /* above everything */
         }
 
         .toast #desc {
@@ -154,6 +156,65 @@
 
         .toast #okBtn:hover {
             background-color: #423bbd;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            /* semi-transparent black */
+            z-index: 999;
+            /* under the spinner but above the form */
+        }
+
+        #loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+        #loading-spinner svg {
+            width: 3.25em;
+            transform-origin: center;
+            animation: rotate4 2s linear infinite;
+        }
+
+        #loading-spinner circle {
+            fill: none;
+            stroke: #4F46E5;
+            /* Matches your button color */
+            stroke-width: 2;
+            stroke-dasharray: 1, 200;
+            stroke-dashoffset: 0;
+            stroke-linecap: round;
+            animation: dash4 1.5s ease-in-out infinite;
+        }
+
+        @keyframes rotate4 {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes dash4 {
+            0% {
+                stroke-dasharray: 1, 200;
+                stroke-dashoffset: 0;
+            }
+
+            50% {
+                stroke-dasharray: 90, 200;
+                stroke-dashoffset: -35px;
+            }
+
+            100% {
+                stroke-dashoffset: -125px;
+            }
         }
     </style>
 </head>
@@ -199,6 +260,15 @@
         </p>
     </form>
 
+    <div id="overlay" style="display: none;"></div>
+
+    <!-- Add this after the form but before the toast -->
+    <div id="loading-spinner" style="display: none;">
+        <svg viewBox="25 25 50 50">
+            <circle r="20" cy="50" cx="50"></circle>
+        </svg>
+    </div>
+
     <!-- Toast message -->
     <div id="toast" class="toast">
         <div id="desc">User created successfully! Please log in.</div>
@@ -211,6 +281,10 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
 
+            // Show overlay and loading spinner
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('loading-spinner').style.display = 'block';
+
             fetch("{% url 'signup' %}", {
                 method: 'POST',
                 headers: {
@@ -221,13 +295,21 @@
             })
                 .then(response => response.json())
                 .then(data => {
+                    // Hide loading spinner
+                    document.getElementById('loading-spinner').style.display = 'none';
+
                     if (data.success) {
-                        showToast();
+                        showToast(); // Overlay remains for toast
                     } else {
+                        // Hide overlay on error
+                        document.getElementById('overlay').style.display = 'none';
                         alert('Error: ' + data.error);
                     }
                 })
                 .catch(error => {
+                    // Hide both overlay and spinner on error
+                    document.getElementById('overlay').style.display = 'none';
+                    document.getElementById('loading-spinner').style.display = 'none';
                     console.error('Error:', error);
                 });
         });
@@ -236,6 +318,8 @@
             const toast = document.getElementById("toast");
             toast.style.visibility = "visible";
             document.getElementById("okBtn").onclick = function () {
+                // Hide overlay when closing toast
+                document.getElementById('overlay').style.display = 'none';
                 window.location.href = "{% url 'login' %}";
             };
         }
