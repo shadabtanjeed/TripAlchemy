@@ -1,4 +1,4 @@
-# **Django Firebase User Authentication**
+# **Django + Firebase User Authentication**
 
 A simple authentication boilerplate using Django and Firebase Authentication.
 
@@ -10,7 +10,8 @@ A simple authentication boilerplate using Django and Firebase Authentication.
 │   ├── firebase.py           # Firebase configuration and initialization
 │   ├── settings.py           # Project settings
 │   ├── urls.py               # URL routing
-│   └── wsgi.py
+│   ├── wsgi.py
+│   └── serviceAccountKey.json
 ├── user_authentication/
 │   ├── __init__.py
 │   ├── urls.py               # Authentication app URL routing
@@ -20,10 +21,10 @@ A simple authentication boilerplate using Django and Firebase Authentication.
 │       └── signup_page.html
 ├── home_page/
 │   ├── __init__.py
-│   ├── urls.py               
-│   ├── views.py              
+│   ├── urls.py
+│   ├── views.py
 │   └── templates/
-│       ├── home_page.html    # Landing page after successful login
+│       ├── home_page.html    # Landing page after successful login + Logout function
 ├── .env                      # Environment variables
 └── requirements.txt
 ```
@@ -71,6 +72,11 @@ pip install -r requirements.txt
         FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
         FIREBASE_APP_ID=your_app_id
         ```
+
+5. Add `serviceAccountKey.json` file
+    * Download the service key json file from firebase.
+    * Rename it as `serviceAccountKey.json`.
+    * Put it in the directory: `django_project`
 
 ## Note
 Due to firebase's limitation, the signup is handled by backend in the function `signup_view` function whereas the login is handled at client side in `login_view` function.
