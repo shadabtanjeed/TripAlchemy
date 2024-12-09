@@ -100,27 +100,70 @@
         .signup-link a {
             text-decoration: underline;
         }
+
+        /* Toast message styles */
+        .toast {
+            visibility: hidden;
+            width: 400px;
+            height: 150px;
+            margin: auto;
+            background-color: #ffffff;
+            color: #fff;
+            text-align: center;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            margin: auto;
+            font-size: 17px;
+            white-space: nowrap;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .toast #desc {
+            color: #000000;
+            padding: 16px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .toast #okBtn {
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 2px;
+        }
+
+        .toast #okBtn:hover {
+            background-color: #3a34a8;
+        }
     </style>
 </head>
 
 <body>
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}" {% endif %}>{{ message }}</li>
+            {% endfor %}
+    </ul>
+    {% endif %}
 
-
-
-    <form class="form">
+    <form class="form" id="signup-form">
+        {% csrf_token %}
         <p class="form-title">Create a new account</p>
         <div class="input-container">
-            <input placeholder="Enter username" type="text">
-            <span>
-                <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
-                        stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
-                </svg>
-            </span>
-        </div>
-        <div class="input-container">
-            <input placeholder="Enter password" type="password">
+            <input id="username" placeholder="Enter username" type="text" required>
             <span>
                 <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-width="2" stroke-linejoin="round"
@@ -131,15 +174,65 @@
                 </svg>
             </span>
         </div>
-        <button class="submit" type="submit">
-            Create Account
-        </button>
-
+        <div class="input-container">
+            <input id="password" placeholder="Enter password" type="password" required>
+            <span>
+                <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                        stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></path>
+                </svg>
+            </span>
+        </div>
+        <button class="submit" type="submit">Create Account</button>
         <p class="signup-link">
             Already have an account?
             <a href="{% url 'login' %}">Login</a>
         </p>
     </form>
+
+    <!-- Toast message -->
+    <div id="toast" class="toast">
+        <div id="desc">User created successfully! Please log in.</div>
+        <button id="okBtn">OK</button>
+    </div>
+
+    <script>
+        document.getElementById('signup-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const email = username + '@email.com';
+
+            fetch("{% url 'signup' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ email: email, password: password })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        });
+
+        function showToast() {
+            const toast = document.getElementById("toast");
+            toast.style.visibility = "visible";
+            document.getElementById("okBtn").onclick = function () {
+                window.location.href = "{% url 'login' %}";
+            };
+        }
+    </script>
 </body>
 
 </html>
