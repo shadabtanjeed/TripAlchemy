@@ -1,4 +1,4 @@
 .env
 serviceAccountKey.json
 trip_venv
-__pycache__/
+django_project/__pycache__/
