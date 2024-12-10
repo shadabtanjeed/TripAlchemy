@@ -1,3 +1,4 @@
 .env
 serviceAccountKey.json
 trip_venv
+__pycache__/
