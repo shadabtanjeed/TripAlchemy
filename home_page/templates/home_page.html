@@ -519,9 +519,8 @@
         function setupAutocomplete(inputId, listId) {
             const input = document.getElementById(inputId);
             const list = document.getElementById(listId);
-            let currentFocus = -1; // Move inside the function scope
+            let currentFocus = -1;
 
-            // Input event handler with debouncing
             input.addEventListener('input', debounce(async function (e) {
                 const query = this.value;
                 if (!query) {
@@ -537,8 +536,12 @@
                     const data = await response.json();
 
                     let html = '';
-                    data.suggestions.forEach((city, index) => {
-                        html += `<div class="autocomplete-item" data-index="${index}">${city}</div>`;
+                    data.suggestions.forEach((item, index) => {
+                        // Store both city and full display value in data attributes
+                        html += `<div class="autocomplete-item" 
+                    data-index="${index}" 
+                    data-city="${item.city}"
+                    data-full="${item.full}">${item.display}</div>`;
                     });
 
                     list.innerHTML = html;
@@ -547,7 +550,8 @@
                     const items = list.getElementsByClassName('autocomplete-item');
                     Array.from(items).forEach(item => {
                         item.addEventListener('click', function () {
-                            input.value = this.innerText;
+                            // Use the full city, country value
+                            input.value = this.getAttribute('data-full');
                             list.innerHTML = '';
                         });
                     });
@@ -575,37 +579,13 @@
                     e.preventDefault();
                     if (currentFocus > -1) {
                         if (items[currentFocus]) {
-                            input.value = items[currentFocus].innerText;
+                            // Use the full city, country value
+                            input.value = items[currentFocus].getAttribute('data-full');
                             list.innerHTML = '';
                         }
                     }
                 }
             });
-
-            // Click outside to close
-            document.addEventListener('click', function (e) {
-                if (e.target !== input && !list.contains(e.target)) {
-                    list.innerHTML = '';
-                    currentFocus = -1;
-                }
-            });
-
-            function addActive(items, current) {
-                if (!items || !items.length) return;
-                removeActive(items);
-
-                if (current >= items.length) current = 0;
-                if (current < 0) current = items.length - 1;
-
-                items[current].classList.add('autocomplete-active');
-                currentFocus = current;
-            }
-
-            function removeActive(items) {
-                Array.from(items).forEach(item => {
-                    item.classList.remove('autocomplete-active');
-                });
-            }
         }
 
         // Debounce function

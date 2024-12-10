@@ -56,33 +56,34 @@ def index(request):
 
 
 def get_city_suggestions(request):
-    # print("=== Debug: get_city_suggestions called ===")
     query = request.GET.get("query", "").lower()
-    # print(f"Debug: Received query: {query}")
 
     if not query:
-        print("Debug: Empty query received")
         return JsonResponse({"suggestions": []})
 
     try:
-        # Construct correct path to CSV file
         csv_path = os.path.join(
             settings.BASE_DIR, "home_page", "static", "worldcities.csv"
         )
-        # print(f"Debug: Attempting to read CSV from: {csv_path}")
-        # print(f"Debug: File exists: {os.path.exists(csv_path)}")
 
-        df = pd.read_csv(csv_path)
-        # print(f"Debug: CSV loaded successfully. Shape: {df.shape}")
+        df = pd.read_csv(csv_path, encoding="utf-8")
+        mask = df["city"].str.lower().str.startswith(query)
 
-        suggestions = df[df["city"].str.lower().str.startswith(query)]["city"].tolist()[
-            :10
-        ]
-        # print(f"Debug: Returning {len(suggestions)} suggestions")
+        results = (
+            df[mask]
+            .apply(
+                lambda row: {
+                    "display": f"{row['city_ascii']}, {row['country']}",
+                    "city": row["city_ascii"],
+                    "country": row["country"],
+                    "full": f"{row['city_ascii']}, {row['country']}",  # Added this field
+                },
+                axis=1,
+            )
+            .tolist()[:10]
+        )
 
-        return JsonResponse({"suggestions": suggestions})
+        return JsonResponse({"suggestions": results})
     except Exception as e:
-        # print(f"Debug: Error occurred: {str(e)}")
-        # print(f"Debug: Current directory: {os.getcwd()}")
-        # print(f"Debug: BASE_DIR: {settings.BASE_DIR}")
+        print(f"Debug: Error occurred: {str(e)}")
         return JsonResponse({"error": str(e)})
