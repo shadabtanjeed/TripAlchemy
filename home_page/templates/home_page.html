@@ -365,7 +365,7 @@
             }
         </style>
 
-        <h1>Welcome, {{ username }}!</h1>
+        <h3>Welcome, {{ username }}!</h3>
 
         <!-- Wrap Bootstrap content in scoped container -->
         <div class="bootstrap-scope">
@@ -430,6 +430,35 @@
 
         overlay.addEventListener("click", () => {
             navBar.classList.remove("open");
+        });
+
+        // Set min date for travel date to today
+        const travelDateInput = document.getElementById('travelDate');
+        const returnDateInput = document.getElementById('returnDate');
+
+        // Format date to YYYY-MM-DD
+        const today = new Date();
+        const formatDate = (date) => {
+            const d = new Date(date);
+            let month = '' + (d.getMonth() + 1);
+            let day = '' + d.getDate();
+            const year = d.getFullYear();
+
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+
+            return [year, month, day].join('-');
+        };
+
+        // Set min date for travel date
+        travelDateInput.min = formatDate(today);
+
+        // Update return date min when travel date changes
+        travelDateInput.addEventListener('change', function () {
+            returnDateInput.min = this.value;
+            if (returnDateInput.value && returnDateInput.value < this.value) {
+                returnDateInput.value = this.value;
+            }
         });
     </script>
 </body>
