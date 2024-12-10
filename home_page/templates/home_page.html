@@ -169,14 +169,30 @@
         .overlay {
             position: fixed;
             top: 0;
-            left: -100%;
+            left: 0;
             height: 1000vh;
             width: 200%;
             opacity: 0;
             pointer-events: none;
             transition: all 0.4s ease;
             background: rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            /* Increase this value */
         }
+
+        /* Ensure form controls are below overlay */
+        .bootstrap-scope .form-control,
+        .autocomplete-items {
+            z-index: 999;
+            /* Less than overlay */
+        }
+
+        /* Update sidebar z-index */
+        .sidebar {
+            z-index: 1001;
+            /* Above overlay */
+        }
+
 
         nav.open~.overlay {
             opacity: 1;
