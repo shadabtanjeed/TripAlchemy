@@ -4,6 +4,7 @@
 
 <head>
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta viewport="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://unpkg.com/boxicons@2.1.2/css/boxicons.min.css" rel="stylesheet" />
@@ -247,6 +248,36 @@
                 stroke-dashoffset: -125px;
             }
         }
+
+
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #d4d4d4;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            border-radius: 0 0 0.5rem 0.5rem;
+            background-color: #fff;
+        }
+
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .autocomplete-items div:hover {
+            background-color: #e9e9e9;
+        }
+
+        .autocomplete-active {
+            background-color: #e9e9e9 !important;
+        }
+
+        .input-container {
+            position: relative;
+        }
     </style>
 
     <title>Home Page</title>
@@ -328,9 +359,10 @@
 
                 /* Contain Bootstrap styles within this scope */
                 width: 100%;
-                max-width: 800px;
+                max-width: 600px;
                 margin: 0 auto;
                 padding: 20px;
+                padding-top: 40px;
             }
 
             /* Match sidebar color scheme */
@@ -365,19 +397,26 @@
             }
         </style>
 
-        <h3>Welcome, {{ username }}!</h3>
+        <h2>Welcome, {{ username }}!</h2>
+
 
         <!-- Wrap Bootstrap content in scoped container -->
         <div class="bootstrap-scope">
             <form id="travel-form">
                 <div class="mb-3">
                     <label for="sourceCity" class="form-label">Source City</label>
-                    <input type="text" class="form-control" id="sourceCity" required>
+                    <div class="input-container">
+                        <input type="text" class="form-control" id="sourceCity" required autocomplete="off">
+                        <div id="sourceCityList" class="autocomplete-items"></div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
                     <label for="destinationCity" class="form-label">Destination City</label>
-                    <input type="text" class="form-control" id="destinationCity" required>
+                    <div class="input-container">
+                        <input type="text" class="form-control" id="destinationCity" required autocomplete="off">
+                        <div id="destinationCityList" class="autocomplete-items"></div>
+                    </div>
                 </div>
 
                 <div class="row mb-3">
@@ -459,6 +498,95 @@
             if (returnDateInput.value && returnDateInput.value < this.value) {
                 returnDateInput.value = this.value;
             }
+        });
+
+        function setupAutocomplete(inputId, listId) {
+            const input = document.getElementById(inputId);
+            const list = document.getElementById(listId);
+            let currentFocus = -1;
+
+            input.addEventListener('input', debounce(async function (e) {
+                const query = this.value;
+                if (!query) {
+                    list.innerHTML = '';
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/home/get_city_suggestions/?query=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+
+                    let html = '';
+                    data.suggestions.forEach(city => {
+                        html += `<div onclick="selectCity('${inputId}', '${city}')">${city}</div>`;
+                    });
+
+                    list.innerHTML = html;
+                } catch (error) {
+                    console.error('Error fetching suggestions:', error);
+                }
+            }, 300));
+
+            input.addEventListener('keydown', function (e) {
+                const items = list.getElementsByTagName('div');
+
+                if (e.keyCode === 40) { // down
+                    currentFocus++;
+                    addActive(items);
+                } else if (e.keyCode === 38) { // up
+                    currentFocus--;
+                    addActive(items);
+                } else if (e.keyCode === 13) { // enter
+                    e.preventDefault();
+                    if (currentFocus > -1) {
+                        if (items) items[currentFocus].click();
+                    }
+                }
+            });
+
+            document.addEventListener('click', function (e) {
+                if (e.target !== input) {
+                    list.innerHTML = '';
+                }
+            });
+        }
+
+        function selectCity(inputId, value) {
+            document.getElementById(inputId).value = value;
+            document.getElementById(inputId + 'List').innerHTML = '';
+        }
+
+        function addActive(items) {
+            if (!items) return;
+            removeActive(items);
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = items.length - 1;
+            items[currentFocus].classList.add('autocomplete-active');
+        }
+
+        function removeActive(items) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove('autocomplete-active');
+            }
+        }
+
+        // Debounce function to limit API calls
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Initialize autocomplete
+        document.addEventListener('DOMContentLoaded', function () {
+            setupAutocomplete('sourceCity', 'sourceCityList');
+            setupAutocomplete('destinationCity', 'destinationCityList');
         });
     </script>
 </body>

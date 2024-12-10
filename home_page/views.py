@@ -8,6 +8,9 @@ from functools import wraps
 
 from django.conf import settings
 
+import pandas as pd
+import os
+
 
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
@@ -50,3 +53,36 @@ def index(request):
         "home_page.html",
         {"username": username, "firebase_config": settings.FIREBASE_CONFIG},
     )
+
+
+def get_city_suggestions(request):
+    # print("=== Debug: get_city_suggestions called ===")
+    query = request.GET.get("query", "").lower()
+    # print(f"Debug: Received query: {query}")
+
+    if not query:
+        print("Debug: Empty query received")
+        return JsonResponse({"suggestions": []})
+
+    try:
+        # Construct correct path to CSV file
+        csv_path = os.path.join(
+            settings.BASE_DIR, "home_page", "static", "worldcities.csv"
+        )
+        # print(f"Debug: Attempting to read CSV from: {csv_path}")
+        # print(f"Debug: File exists: {os.path.exists(csv_path)}")
+
+        df = pd.read_csv(csv_path)
+        # print(f"Debug: CSV loaded successfully. Shape: {df.shape}")
+
+        suggestions = df[df["city"].str.lower().str.startswith(query)]["city"].tolist()[
+            :10
+        ]
+        # print(f"Debug: Returning {len(suggestions)} suggestions")
+
+        return JsonResponse({"suggestions": suggestions})
+    except Exception as e:
+        # print(f"Debug: Error occurred: {str(e)}")
+        # print(f"Debug: Current directory: {os.getcwd()}")
+        # print(f"Debug: BASE_DIR: {settings.BASE_DIR}")
+        return JsonResponse({"error": str(e)})
