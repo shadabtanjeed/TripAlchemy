@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://unpkg.com/boxicons@2.1.2/css/boxicons.min.css" rel="stylesheet" />
 
-
     <script type="module">
         // Import Firebase SDKs
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -321,9 +320,102 @@
     </div>
 
     <div class="content">
+        <!-- Remove inline style tag and use link for Bootstrap -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+            media="screen and (min-width: 0px)" onload="this.media='all'">
+        <style>
+            .bootstrap-scope {
+
+                /* Contain Bootstrap styles within this scope */
+                width: 100%;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+
+            /* Match sidebar color scheme */
+            .btn-primary {
+                background-color: #4F46E5;
+                border-color: #4F46E5;
+            }
+
+            .btn-primary:hover {
+                background-color: #423bbd;
+                border-color: #423bbd;
+            }
+
+            .btn-outline-primary {
+                color: #4F46E5;
+                border-color: #4F46E5;
+            }
+
+            .btn-outline-primary:hover {
+                background-color: #4F46E5;
+                border-color: #4F46E5;
+            }
+
+            .btn-check:checked+.btn-outline-primary {
+                background-color: #4F46E5;
+                border-color: #4F46E5;
+            }
+
+            .form-control:focus {
+                border-color: #4F46E5;
+                box-shadow: 0 0 0 0.25rem rgba(79, 70, 229, 0.25);
+            }
+        </style>
+
         <h1>Welcome, {{ username }}!</h1>
-        <!-- Your content here -->
+
+        <!-- Wrap Bootstrap content in scoped container -->
+        <div class="bootstrap-scope">
+            <form id="travel-form">
+                <div class="mb-3">
+                    <label for="sourceCity" class="form-label">Source City</label>
+                    <input type="text" class="form-control" id="sourceCity" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="destinationCity" class="form-label">Destination City</label>
+                    <input type="text" class="form-control" id="destinationCity" required>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col">
+                        <label for="travelDate" class="form-label">Travel Date</label>
+                        <input type="date" class="form-control" id="travelDate" required>
+                    </div>
+                    <div class="col">
+                        <label for="returnDate" class="form-label">Return Date</label>
+                        <input type="date" class="form-control" id="returnDate" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="numPassengers" class="form-label">Number of Travelers</label>
+                    <input type="number" class="form-control" id="numPassengers" min="1" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-block">Budget Range</label>
+                    <div class="btn-group" role="group" aria-label="Budget options">
+                        <input type="radio" class="btn-check" name="budgetOptions" id="lowBudget" value="low">
+                        <label class="btn btn-outline-primary" for="lowBudget">Low</label>
+
+                        <input type="radio" class="btn-check" name="budgetOptions" id="mediumBudget" value="medium">
+                        <label class="btn btn-outline-primary" for="mediumBudget">Medium</label>
+
+                        <input type="radio" class="btn-check" name="budgetOptions" id="highBudget" value="high">
+                        <label class="btn btn-outline-primary" for="highBudget">High</label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Plan My Trip</button>
+            </form>
+        </div>
     </div>
+
+
 
     <script>
         const navBar = document.querySelector("nav"),
