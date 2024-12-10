@@ -503,8 +503,9 @@
         function setupAutocomplete(inputId, listId) {
             const input = document.getElementById(inputId);
             const list = document.getElementById(listId);
-            let currentFocus = -1;
+            let currentFocus = -1; // Move inside the function scope
 
+            // Input event handler with debouncing
             input.addEventListener('input', debounce(async function (e) {
                 const query = this.value;
                 if (!query) {
@@ -514,76 +515,97 @@
 
                 try {
                     const response = await fetch(`/home/get_city_suggestions/?query=${encodeURIComponent(query)}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
 
                     let html = '';
-                    data.suggestions.forEach(city => {
-                        html += `<div onclick="selectCity('${inputId}', '${city}')">${city}</div>`;
+                    data.suggestions.forEach((city, index) => {
+                        html += `<div class="autocomplete-item" data-index="${index}">${city}</div>`;
                     });
 
                     list.innerHTML = html;
+
+                    // Add click handlers to all suggestion items
+                    const items = list.getElementsByClassName('autocomplete-item');
+                    Array.from(items).forEach(item => {
+                        item.addEventListener('click', function () {
+                            input.value = this.innerText;
+                            list.innerHTML = '';
+                        });
+                    });
                 } catch (error) {
                     console.error('Error fetching suggestions:', error);
+                    list.innerHTML = '<div class="error">Error fetching suggestions</div>';
                 }
             }, 300));
 
+            // Keyboard navigation
             input.addEventListener('keydown', function (e) {
-                const items = list.getElementsByTagName('div');
+                const items = list.getElementsByClassName('autocomplete-item');
 
-                if (e.keyCode === 40) { // down
+                if (e.key === 'ArrowDown') {
                     currentFocus++;
-                    addActive(items);
-                } else if (e.keyCode === 38) { // up
+                    addActive(items, currentFocus);
+                    e.preventDefault();
+                }
+                else if (e.key === 'ArrowUp') {
                     currentFocus--;
-                    addActive(items);
-                } else if (e.keyCode === 13) { // enter
+                    addActive(items, currentFocus);
+                    e.preventDefault();
+                }
+                else if (e.key === 'Enter') {
                     e.preventDefault();
                     if (currentFocus > -1) {
-                        if (items) items[currentFocus].click();
+                        if (items[currentFocus]) {
+                            input.value = items[currentFocus].innerText;
+                            list.innerHTML = '';
+                        }
                     }
                 }
             });
 
+            // Click outside to close
             document.addEventListener('click', function (e) {
-                if (e.target !== input) {
+                if (e.target !== input && !list.contains(e.target)) {
                     list.innerHTML = '';
+                    currentFocus = -1;
                 }
             });
-        }
 
-        function selectCity(inputId, value) {
-            document.getElementById(inputId).value = value;
-            document.getElementById(inputId + 'List').innerHTML = '';
-        }
+            function addActive(items, current) {
+                if (!items || !items.length) return;
+                removeActive(items);
 
-        function addActive(items) {
-            if (!items) return;
-            removeActive(items);
-            if (currentFocus >= items.length) currentFocus = 0;
-            if (currentFocus < 0) currentFocus = items.length - 1;
-            items[currentFocus].classList.add('autocomplete-active');
-        }
+                if (current >= items.length) current = 0;
+                if (current < 0) current = items.length - 1;
 
-        function removeActive(items) {
-            for (let i = 0; i < items.length; i++) {
-                items[i].classList.remove('autocomplete-active');
+                items[current].classList.add('autocomplete-active');
+                currentFocus = current;
+            }
+
+            function removeActive(items) {
+                Array.from(items).forEach(item => {
+                    item.classList.remove('autocomplete-active');
+                });
             }
         }
 
-        // Debounce function to limit API calls
+        // Debounce function
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
                 const later = () => {
                     clearTimeout(timeout);
-                    func(...args);
+                    func.apply(this, args);
                 };
                 clearTimeout(timeout);
                 timeout = setTimeout(later, wait);
             };
         }
 
-        // Initialize autocomplete
+        // Initialize autocomplete when DOM is loaded
         document.addEventListener('DOMContentLoaded', function () {
             setupAutocomplete('sourceCity', 'sourceCityList');
             setupAutocomplete('destinationCity', 'destinationCityList');
