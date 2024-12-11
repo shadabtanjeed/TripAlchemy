@@ -636,6 +636,11 @@
                 const numPassengers = document.getElementById('numPassengers').value;
                 const budget = document.querySelector('input[name="budgetOptions"]:checked').value;
 
+                // Hide loading spinner before navigation
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('loading-spinner').style.display = 'none';
+
+
                 const queryParams = new URLSearchParams({
                     source: sourceCity,
                     destination: destinationCity,
@@ -654,6 +659,12 @@
                 document.getElementById('overlay').style.display = 'none';
                 document.getElementById('loading-spinner').style.display = 'none';
             }
+        });
+
+        // Add cleanup on page unload
+        window.addEventListener('beforeunload', function () {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('loading-spinner').style.display = 'none';
         });
     </script>
 </body>
