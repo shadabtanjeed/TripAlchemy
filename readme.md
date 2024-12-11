@@ -40,4 +40,5 @@ python manage.py runserver
 ```
 ## Limitations
 - Only major cities are available currently.
-- Only flights are available as mode of transportation due to lack of data  regarding bus or trains
+- Only flights are available as mode of transportation due to lack of data  regarding bus or trains.
+- Flights with stops do not have any indications in the flight picker page(yet). However, it can be easily known from the details of that flight.
