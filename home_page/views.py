@@ -480,7 +480,8 @@ def get_hotel_details(request):
 @csrf_exempt
 def get_hotels_from_city(request):
     try:
-        # # Get parameters from request
+        # Get parameters from request
+
         # city = request.GET.get("city")
         # check_in = request.GET.get("check_in")
         # check_out = request.GET.get("check_out")
@@ -488,6 +489,7 @@ def get_hotels_from_city(request):
         # budget = request.GET.get("budget", "low").lower()
 
         # Get travel details from session
+
         travel_details = request.session.get("travel_details", {})
         city = travel_details.get("destination")
         check_in = travel_details.get("travel_date")
