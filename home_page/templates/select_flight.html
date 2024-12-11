@@ -411,16 +411,73 @@
                 border-color: #4F46E5;
                 box-shadow: 0 0 0 0.25rem rgba(79, 70, 229, 0.25);
             }
+
+            .flight-card {
+                border: 1px solid #e5e7eb;
+                border-radius: 1rem;
+                margin-bottom: 2rem;
+                transition: all 0.3s ease;
+            }
+
+            .flight-card:hover {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+
+            .flight-section {
+                padding: 1.5rem;
+                border-bottom: 1px solid #e5e7eb;
+            }
+
+            .flight-header {
+                display: flex;
+                align-items: center;
+                margin-bottom: 1rem;
+            }
+
+            .airline-logo {
+                width: 32px;
+                height: 32px;
+                margin-right: 1rem;
+            }
+
+            .flight-details {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+            }
+
+            .flight-info {
+                padding: 0.5rem;
+            }
+
+            .price-section {
+                padding: 1.5rem;
+                background-color: #f9fafb;
+                border-radius: 0 0 1rem 1rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .price {
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: #4F46E5;
+            }
+
+            .btn-view-details {
+                margin-right: 1rem;
+            }
         </style>
 
-        <h2>Choose your flight</h2>
+        <h2>Flight Section</h2>
 
 
         <!-- Inside the bootstrap-scope div -->
         <div class="bootstrap-scope">
             <div class="card mb-4">
                 <div class="card-body">
-                    <h3>Flight Details</h3>
+                    <h3></h3>
                     <div class="row">
                         <div class="col-md-6">
                             <p><strong>From:</strong> {{ source }} ({{ source_code }})</p>
@@ -436,6 +493,11 @@
                 </div>
             </div>
             <!-- Add more content for flight selection here -->
+
+            <h3>Choose your flight</h3>
+            <div class="flight-options" id="flightOptions">
+                <!-- JavaScript will populate this -->
+            </div>
         </div>
     </div>
 
@@ -455,6 +517,99 @@
         overlay.addEventListener("click", () => {
             navBar.classList.remove("open");
         });
+
+        async function loadFlightOptions() {
+            try {
+                const response = await fetch('/home/get_flight_data/?from_id={{ source_code }}&to_id={{ dest_code }}&departure_date={{ travel_date }}&return_date={{ return_date }}');
+                const data = await response.json();
+
+                const container = document.getElementById('flightOptions');
+                container.innerHTML = ''; // Clear existing content
+
+                data.flights.forEach(flight => {
+                    container.innerHTML += `
+                    <div class="flight-card">
+                        <!-- Outbound Section -->
+                        <div class="flight-section">
+                            <h5 class="mb-3">Outbound Flight</h5>
+                            <div class="flight-header">
+                                <img src="${flight.outbound.airline.logo_url}" alt="${flight.outbound.airline.name}" class="airline-logo">
+                                <span class="fw-bold">${flight.outbound.airline.name}</span>
+                            </div>
+                            <div class="flight-details">
+                                <div class="flight-info">
+                                    <small class="text-muted">From</small>
+                                    <p class="mb-0">${flight.outbound.origin.city} (${flight.outbound.origin.code})</p>
+                                    <p class="mb-0">${new Date(flight.outbound.departure).toLocaleTimeString()}</p>
+                                </div>
+                                <div class="flight-info">
+                                    <small class="text-muted">To</small>
+                                    <p class="mb-0">${flight.outbound.destination.city} (${flight.outbound.destination.code})</p>
+                                    <p class="mb-0">${new Date(flight.outbound.arrival).toLocaleTimeString()}</p>
+                                </div>
+                                <div class="flight-info">
+                                    <small class="text-muted">Flight</small>
+                                    <p class="mb-0">${flight.outbound.flight_number}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Inbound Section -->
+                        <div class="flight-section">
+                            <h5 class="mb-3">Return Flight</h5>
+                            <div class="flight-header">
+                                <img src="${flight.inbound.airline.logo_url}" alt="${flight.inbound.airline.name}" class="airline-logo">
+                                <span class="fw-bold">${flight.inbound.airline.name}</span>
+                            </div>
+                            <div class="flight-details">
+                                <div class="flight-info">
+                                    <small class="text-muted">From</small>
+                                    <p class="mb-0">${flight.inbound.origin.city} (${flight.inbound.origin.code})</p>
+                                    <p class="mb-0">${new Date(flight.inbound.departure).toLocaleTimeString()}</p>
+                                </div>
+                                <div class="flight-info">
+                                    <small class="text-muted">To</small>
+                                    <p class="mb-0">${flight.inbound.destination.city} (${flight.inbound.destination.code})</p>
+                                    <p class="mb-0">${new Date(flight.inbound.arrival).toLocaleTimeString()}</p>
+                                </div>
+                                <div class="flight-info">
+                                    <small class="text-muted">Flight</small>
+                                    <p class="mb-0">${flight.inbound.flight_number}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Price and Actions Section -->
+                        <div class="price-section">
+                            <div class="price">
+                                ${flight.price.currency} ${flight.price.amount}
+                                <small class="text-muted d-block">includes VAT ${flight.price.vat}</small>
+                            </div>
+                            <div class="actions">
+                                <button class="btn btn-outline-primary btn-view-details" onclick="window.open('${flight.shareable_url}', '_blank')">
+                                    View Details
+                                </button>
+                                <button class="btn btn-primary" onclick="selectFlight('${flight.id}')">
+                                    Select
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                });
+            } catch (error) {
+                console.error('Error loading flights:', error);
+            }
+        }
+
+        function selectFlight(flightId) {
+            // Handle flight selection
+            console.log('Selected flight:', flightId);
+            // Add your selection logic here
+        }
+
+        // Load flights when page loads
+        document.addEventListener('DOMContentLoaded', loadFlightOptions);
 
 
     </script>

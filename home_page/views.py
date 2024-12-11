@@ -9,8 +9,6 @@ from django.conf import settings
 import pandas as pd
 import os
 import google.generativeai as genai
-
-
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -18,7 +16,7 @@ from django.contrib.auth.decorators import login_required
 import json
 import firebase_admin
 from firebase_admin import auth
-
+import requests
 from django.conf import settings
 
 
@@ -152,3 +150,137 @@ def select_flight(request):
         "firebase_config": settings.FIREBASE_CONFIG,
     }
     return render(request, "select_flight.html", context)
+
+
+def get_flight_data(request):
+    # Get parameters from request
+    from_id = request.GET.get("from_id")
+    to_id = request.GET.get("to_id")
+    departure_date = request.GET.get("departure_date")
+    return_date = request.GET.get("return_date")
+    cabin_class = request.GET.get("cabin_class", "ECONOMY")
+    adults = request.GET.get("adults", 1)
+    page = request.GET.get("page", 1)
+    # numberOfStops = request.GET.get("numberOfStops", "nonstop_flights")
+    numberOfStops = request.GET.get("numberOfStops", "all")
+
+    # Validate required parameters
+    if not all([from_id, to_id, departure_date, return_date]):
+        return JsonResponse(
+            {
+                "error": "Missing required parameters. Please provide from_id, to_id, departure_date, and return_date"
+            },
+            status=400,
+        )
+
+    url = "https://booking-com18.p.rapidapi.com/flights/search-return"
+
+    querystring = {
+        "fromId": from_id,
+        "toId": to_id,
+        "departureDate": departure_date,
+        "returnDate": return_date,
+        "cabinClass": cabin_class.upper(),
+        "adults": adults,
+        "page": page,
+        "numberOfStops": numberOfStops,
+    }
+
+    headers = {
+        "x-rapidapi-key": os.getenv("RAPID_API_BOOKING_KEY"),
+        "x-rapidapi-host": "booking-com18.p.rapidapi.com",
+    }
+
+    response = requests.get(url, headers=headers, params=querystring)
+    data = response.json()
+
+    # Process response into simplified format
+    try:
+        simplified_data = {
+            "total_flights_found": data["data"]["filteredFlightsCount"],
+            "flights": [],
+        }
+
+        for flight in data["data"]["flights"]:
+            # Get airline codes
+            outbound_airline_code = flight["bounds"][0]["segments"][0][
+                "marketingCarrier"
+            ]["code"]
+            inbound_airline_code = flight["bounds"][1]["segments"][0][
+                "marketingCarrier"
+            ]["code"]
+
+            flight_info = {
+                "id": flight["id"],
+                "outbound": {
+                    "flight_number": flight["bounds"][0]["segments"][0]["flightNumber"],
+                    "airline": {
+                        "code": outbound_airline_code,
+                        "name": flight["bounds"][0]["segments"][0]["marketingCarrier"][
+                            "name"
+                        ],
+                        "logo_url": f"https://images.kiwi.com/airlines/64/{outbound_airline_code}.png",
+                    },
+                    "origin": {
+                        "code": flight["bounds"][0]["segments"][0]["origin"][
+                            "airportCode"
+                        ],
+                        "city": flight["bounds"][0]["segments"][0]["origin"][
+                            "cityName"
+                        ],
+                    },
+                    "destination": {
+                        "code": flight["bounds"][0]["segments"][0]["destination"][
+                            "airportCode"
+                        ],
+                        "city": flight["bounds"][0]["segments"][0]["destination"][
+                            "cityName"
+                        ],
+                    },
+                    "departure": flight["bounds"][0]["segments"][0]["departuredAt"],
+                    "arrival": flight["bounds"][0]["segments"][0]["arrivedAt"],
+                },
+                "inbound": {
+                    "flight_number": flight["bounds"][1]["segments"][0]["flightNumber"],
+                    "airline": {
+                        "code": inbound_airline_code,
+                        "name": flight["bounds"][1]["segments"][0]["marketingCarrier"][
+                            "name"
+                        ],
+                        "logo_url": f"https://images.kiwi.com/airlines/64/{inbound_airline_code}.png",
+                    },
+                    "origin": {
+                        "code": flight["bounds"][1]["segments"][0]["origin"][
+                            "airportCode"
+                        ],
+                        "city": flight["bounds"][1]["segments"][0]["origin"][
+                            "cityName"
+                        ],
+                    },
+                    "destination": {
+                        "code": flight["bounds"][1]["segments"][0]["destination"][
+                            "airportCode"
+                        ],
+                        "city": flight["bounds"][1]["segments"][0]["destination"][
+                            "cityName"
+                        ],
+                    },
+                    "departure": flight["bounds"][1]["segments"][0]["departuredAt"],
+                    "arrival": flight["bounds"][1]["segments"][0]["arrivedAt"],
+                },
+                "price": {
+                    "amount": flight["travelerPrices"][0]["price"]["price"]["value"],
+                    "currency": flight["travelerPrices"][0]["price"]["price"][
+                        "currency"
+                    ]["code"],
+                    "vat": flight["travelerPrices"][0]["price"]["vat"]["value"],
+                },
+                "shareable_url": flight["shareableUrl"],
+            }
+            simplified_data["flights"].append(flight_info)
+
+        return JsonResponse(simplified_data)
+
+    except Exception as e:
+        print(f"Error processing flight data: {str(e)}")
+        return JsonResponse({"error": "Failed to process flight data"}, status=500)

@@ -9,4 +9,5 @@ urlpatterns = [
     ),
     path("get_airport_codes/", views.get_airport_codes, name="get_airport_codes"),
     path("flight/", views.select_flight, name="select_flight"),
+    path("get_flight_data/", views.get_flight_data, name="get_flight_data"),
 ]
