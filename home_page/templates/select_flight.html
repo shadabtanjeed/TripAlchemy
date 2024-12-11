@@ -506,6 +506,14 @@
             .btn-view-details {
                 margin-right: 1rem;
             }
+
+            .loading-container-2 {
+                display: flex;
+                justify-content: center;
+                width: 100%;
+                padding: 2rem 0;
+                margin: 0 auto;
+            }
         </style>
 
         <h2>Flight Section</h2>
@@ -536,13 +544,18 @@
 
             <p><b>Note:</b> The price mentioned is for each adult passenger</p>
 
+
+
             <div class="container">
-                <!-- Loading Spinner -->
-                <div id="loading-container">
-                    <svg class="spinner" viewBox="25 25 50 50">
-                        <circle r="20" cy="50" cx="50"></circle>
-                    </svg>
+                <div class="loading-container-2">
+                    <!-- Loading Spinner -->
+                    <div id="loading-container">
+                        <svg class="spinner" viewBox="25 25 50 50">
+                            <circle r="20" cy="50" cx="50"></circle>
+                        </svg>
+                    </div>
                 </div>
+
 
                 <!-- Flight Options Container -->
                 <div id="flightOptions" style="display: none;">
