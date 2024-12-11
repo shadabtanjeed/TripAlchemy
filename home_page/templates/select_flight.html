@@ -548,6 +548,14 @@
                 <div id="flightOptions" style="display: none;">
                     <!-- Flights will be populated here -->
                 </div>
+
+                <div class="pagination-container text-center mt-4" style="display: none;">
+                    <div class="btn-group" role="group" aria-label="Pagination">
+                        <button class="btn btn-outline-primary" id="prevPage" disabled>Previous</button>
+                        <button class="btn btn-outline-primary disabled" id="pageInfo">Page 1 of 1</button>
+                        <button class="btn btn-outline-primary" id="nextPage">Next</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -556,6 +564,10 @@
 
     <script>
         let flightsLoaded = false;
+
+        const flightCache = {};
+        let currentPage = 1;
+        let totalPages = 1;
 
         const navBar = document.querySelector("nav"),
             menuBtns = document.querySelectorAll(".menu-icon"),
@@ -571,116 +583,154 @@
             navBar.classList.remove("open");
         });
 
-        async function loadFlightOptions() {
+        async function loadFlightOptions(page = 1, useCache = false) {
+            // Show loading state
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('flightOptions').style.display = 'none';
+            document.querySelector('.pagination-container').style.display = 'none';
 
-            if (flightsLoaded) {
-                document.getElementById('loading-container').style.display = 'none';
-                document.getElementById('flightOptions').style.display = 'block';
+            // Check cache first if useCache is true
+            const cacheKey = `flights_page_${page}`;
+            if (useCache && flightCache[cacheKey]) {
+                displayFlights(flightCache[cacheKey]);
                 return;
             }
+
             try {
-                const response = await fetch('/home/get_flight_data/?from_id={{ source_code }}&to_id={{ dest_code }}&departure_date={{ travel_date }}&return_date={{ return_date }}&adults={{ passengers }}&budget={{ budget }}');
+                const response = await fetch(`/home/get_flight_data/?from_id={{ source_code }}&to_id={{ dest_code }}&departure_date={{ travel_date }}&return_date={{ return_date }}&adults={{ passengers }}&budget={{ budget }}&page=${page}`);
                 const data = await response.json();
 
-                const container = document.getElementById('flightOptions');
-                container.innerHTML = ''; // Clear existing content
+                // Cache the response   
+                flightCache[cacheKey] = data;
 
-                data.flights.forEach(flight => {
-                    const price = (flight.price.amount / 100).toFixed(2);
-
-                    container.innerHTML += `
-                    <div class="flight-card">
-                        <!-- Outbound Section -->
-                        <div class="flight-section">
-                            <h5 class="mb-3">Outbound Flight</h5>
-                            <div class="flight-header">
-                                <img src="${flight.outbound.airline.logo_url}" alt="${flight.outbound.airline.name}" class="airline-logo">
-                                <span class="fw-bold">${flight.outbound.airline.name}</span>
-                            </div>
-                            <div class="flight-details">
-                                <div class="flight-info">
-                                    <small class="text-muted">From</small>
-                                    <p class="mb-0">${flight.outbound.origin.city} (${flight.outbound.origin.code})</p>
-                                    <p class="mb-0">${new Date(flight.outbound.departure).toLocaleTimeString()}</p>
-                                </div>
-                                <div class="flight-info">
-                                    <small class="text-muted">To</small>
-                                    <p class="mb-0">${flight.outbound.destination.city} (${flight.outbound.destination.code})</p>
-                                    <p class="mb-0">${new Date(flight.outbound.arrival).toLocaleTimeString()}</p>
-                                </div>
-                                <div class="flight-info">
-                                    <small class="text-muted">Flight</small>
-                                    <p class="mb-0">${flight.outbound.flight_number}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Inbound Section -->
-                        <div class="flight-section">
-                            <h5 class="mb-3">Return Flight</h5>
-                            <div class="flight-header">
-                                <img src="${flight.inbound.airline.logo_url}" alt="${flight.inbound.airline.name}" class="airline-logo">
-                                <span class="fw-bold">${flight.inbound.airline.name}</span>
-                            </div>
-                            <div class="flight-details">
-                                <div class="flight-info">
-                                    <small class="text-muted">From</small>
-                                    <p class="mb-0">${flight.inbound.origin.city} (${flight.inbound.origin.code})</p>
-                                    <p class="mb-0">${new Date(flight.inbound.departure).toLocaleTimeString()}</p>
-                                </div>
-                                <div class="flight-info">
-                                    <small class="text-muted">To</small>
-                                    <p class="mb-0">${flight.inbound.destination.city} (${flight.inbound.destination.code})</p>
-                                    <p class="mb-0">${new Date(flight.inbound.arrival).toLocaleTimeString()}</p>
-                                </div>
-                                <div class="flight-info">
-                                    <small class="text-muted">Flight</small>
-                                    <p class="mb-0">${flight.inbound.flight_number}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Price and Actions Section -->
-                        <div class="price-section">
-                            <div class="price">
-                                <span class="h3 mb-0 custom-price">${flight.price.currency} ${price}</span>
-
-                                <small class="text-muted d-block">includes VAT ${(flight.price.vat / 100).toFixed(2)}</small>
-                                </div>
-                            <div class="actions">
-                                <button class="btn btn-outline-primary btn-view-details" onclick="window.open('${flight.shareable_url}', '_blank')">
-                                    View Details
-                                </button>
-                                <button class="btn btn-primary" onclick="selectFlight('${flight.id}')">
-                                    Select
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                });
-
-                // Hide loader and show flights
-                document.getElementById('loading-container').style.display = 'none';
-                document.getElementById('flightOptions').style.display = 'block';
-                flightsLoaded = true;
+                // Display flights
+                displayFlights(data);
 
             } catch (error) {
                 console.error('Error loading flights:', error);
+                document.getElementById('loading-container').style.display = 'none';
             }
         }
 
+        function displayFlights(data) {
+            currentPage = data.current_page;
+            totalPages = data.total_pages;
+
+            const container = document.getElementById('flightOptions');
+            container.innerHTML = ''; // Clear existing content
+
+            data.flights.forEach(flight => {
+                const price = (flight.price.amount / 100).toFixed(2);
+
+                container.innerHTML += `
+        <div class="flight-card">
+            <!-- Outbound Section -->
+            <div class="flight-section">
+                <h5 class="mb-3">Outbound Flight</h5>
+                <div class="flight-header">
+                    <img src="${flight.outbound.airline.logo_url}" alt="${flight.outbound.airline.name}" class="airline-logo">
+                    <span class="fw-bold">${flight.outbound.airline.name}</span>
+                </div>
+                <div class="flight-details">
+                    <div class="flight-info">
+                        <small class="text-muted">From</small>
+                        <p class="mb-0">${flight.outbound.origin.city} (${flight.outbound.origin.code})</p>
+                        <p class="mb-0">${new Date(flight.outbound.departure).toLocaleTimeString()}</p>
+                    </div>
+                    <div class="flight-info">
+                        <small class="text-muted">To</small>
+                        <p class="mb-0">${flight.outbound.destination.city} (${flight.outbound.destination.code})</p>
+                        <p class="mb-0">${new Date(flight.outbound.arrival).toLocaleTimeString()}</p>
+                    </div>
+                    <div class="flight-info">
+                        <small class="text-muted">Flight</small>
+                        <p class="mb-0">${flight.outbound.flight_number}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inbound Section -->
+            <div class="flight-section">
+                <h5 class="mb-3">Return Flight</h5>
+                <div class="flight-header">
+                    <img src="${flight.inbound.airline.logo_url}" alt="${flight.inbound.airline.name}" class="airline-logo">
+                    <span class="fw-bold">${flight.inbound.airline.name}</span>
+                </div>
+                <div class="flight-details">
+                    <div class="flight-info">
+                        <small class="text-muted">From</small>
+                        <p class="mb-0">${flight.inbound.origin.city} (${flight.inbound.origin.code})</p>
+                        <p class="mb-0">${new Date(flight.inbound.departure).toLocaleTimeString()}</p>
+                    </div>
+                    <div class="flight-info">
+                        <small class="text-muted">To</small>
+                        <p class="mb-0">${flight.inbound.destination.city} (${flight.inbound.destination.code})</p>
+                        <p class="mb-0">${new Date(flight.inbound.arrival).toLocaleTimeString()}</p>
+                    </div>
+                    <div class="flight-info">
+                        <small class="text-muted">Flight</small>
+                        <p class="mb-0">${flight.inbound.flight_number}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price and Actions Section -->
+            <div class="price-section">
+                <div class="price">
+                    <span class="h3 mb-0 custom-price">${flight.price.currency} ${price}</span>
+                    <small class="text-muted d-block">includes VAT ${(flight.price.vat / 100).toFixed(2)}</small>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-outline-primary btn-view-details" onclick="window.open('${flight.shareable_url}', '_blank')">
+                        View Details
+                    </button>
+                    <button class="btn btn-primary" onclick="selectFlight('${flight.id}')">
+                        Select
+                    </button>
+                </div>
+            </div>
+        </div>
+        `;
+            });
+
+            // Update pagination
+            updatePagination();
+
+            // Show content
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('flightOptions').style.display = 'block';
+            document.querySelector('.pagination-container').style.display = 'block';
+        }
+
+        function updatePagination() {
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+            const pageInfo = document.getElementById('pageInfo');
+
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+        }
+
+        // Add event listeners for pagination
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                loadFlightOptions(currentPage - 1, true);
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                loadFlightOptions(currentPage + 1, true);
+            }
+        });
+
         function selectFlight(flightId) {
-            // Handle flight selection
             console.log('Selected flight:', flightId);
-            document.getElementById('loading-container').innerHTML = '<p class="text-danger">Error loading flights</p>';
-            // Add your selection logic here
         }
 
         // Load flights when page loads
-        document.addEventListener('DOMContentLoaded', loadFlightOptions);
-
-
+        document.addEventListener('DOMContentLoaded', () => loadFlightOptions(1, false));
     </script>
 </body>
 

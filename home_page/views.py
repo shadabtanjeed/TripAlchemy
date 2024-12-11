@@ -210,6 +210,9 @@ def get_flight_data(request):
     try:
         simplified_data = {
             "total_flights_found": data["data"]["filteredFlightsCount"],
+            "current_page": int(page),
+            "total_pages": (data["data"]["filteredFlightsCount"] + 9)
+            // 10,  # Ceiling division by 10
             "flights": [],
         }
 
