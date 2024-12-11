@@ -550,7 +550,7 @@
 
             <h2 class="page-title">Choose Your Flight</h2>
 
-            <p><b>Note:</b> The price mentioned is for each adult passenger</p>
+            <p><b>Note:</b> The mentioned price is for each adult passenger.</p>
 
 
 
@@ -747,6 +747,32 @@
         });
 
         function selectFlight(flightId) {
+            // Find selected flight from cached data
+            const flight = flightCache[`flights_page_${currentPage}`].flights.find(f => f.id === flightId);
+
+            // Store flight details
+            fetch('/home/store_flight_details/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    outbound_airline: flight.outbound.airline.name,
+                    outbound_flight: flight.outbound.flight_number,
+                    inbound_airline: flight.inbound.airline.name,
+                    inbound_flight: flight.inbound.flight_number,
+                    total_price: flight.price.amount,
+                    currency: flight.price.currency
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        window.location.href = '/home/hotel/';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
             console.log('Selected flight:', flightId);
         }
 
