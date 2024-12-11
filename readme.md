@@ -9,8 +9,8 @@ TripAlchemy is an AI-powered travel planning platform that simplifies trip manag
 - **Backend**: Django
 - **Frontend**: HTML, Bootstrap, CSS
 - **Database**: Firebase
-- **APIs**: Mapbox, OpenWeather, Air Scraper
-- **AI Tools**: Google Vision AI, Deepai.org ...
+- **APIs**: Mapbox, OpenWeather, Air Scraper, Booking.com
+- **AI Tools**: Google Gemini 1.5
 
 ## Features
 - **Intelligent Itinerary Generation**: Destination-based planning with transport, accommodation, and budget recommendations
