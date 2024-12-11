@@ -158,11 +158,23 @@ def get_flight_data(request):
     to_id = request.GET.get("to_id")
     departure_date = request.GET.get("departure_date")
     return_date = request.GET.get("return_date")
-    cabin_class = request.GET.get("cabin_class", "ECONOMY")
+    budget = request.GET.get("budget", "low")  # Default to low budget
     adults = request.GET.get("adults", 1)
     page = request.GET.get("page", 1)
-    # numberOfStops = request.GET.get("numberOfStops", "nonstop_flights")
-    numberOfStops = request.GET.get("numberOfStops", "all")
+
+    # make budget lowercase
+    budget = budget.lower()
+
+    # Set parameters based on budget preference
+    if budget == "low":
+        cabin_class = "ECONOMY"
+        numberOfStops = "all"  # Default - allows all flights
+    elif budget == "medium":
+        cabin_class = "ECONOMY"
+        numberOfStops = "nonstop_flights"  # Only direct flights
+    else:  # high budget
+        cabin_class = "BUSINESS"
+        numberOfStops = "nonstop_flights"  # Only direct flights
 
     # Validate required parameters
     if not all([from_id, to_id, departure_date, return_date]):
@@ -180,7 +192,7 @@ def get_flight_data(request):
         "toId": to_id,
         "departureDate": departure_date,
         "returnDate": return_date,
-        "cabinClass": cabin_class.upper(),
+        "cabinClass": cabin_class,
         "adults": adults,
         "page": page,
         "numberOfStops": numberOfStops,

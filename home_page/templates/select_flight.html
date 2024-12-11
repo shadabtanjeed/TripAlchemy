@@ -534,6 +534,8 @@
 
             <h2 class="page-title">Choose Your Flight</h2>
 
+            <p><b>Note:</b> The price mentioned is for each adult passenger</p>
+
             <div class="container">
                 <!-- Loading Spinner -->
                 <div id="loading-container">
@@ -577,7 +579,7 @@
                 return;
             }
             try {
-                const response = await fetch('/home/get_flight_data/?from_id={{ source_code }}&to_id={{ dest_code }}&departure_date={{ travel_date }}&return_date={{ return_date }}');
+                const response = await fetch('/home/get_flight_data/?from_id={{ source_code }}&to_id={{ dest_code }}&departure_date={{ travel_date }}&return_date={{ return_date }}&adults={{ passengers }}&budget={{ budget }}');
                 const data = await response.json();
 
                 const container = document.getElementById('flightOptions');
