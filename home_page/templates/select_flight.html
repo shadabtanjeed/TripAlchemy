@@ -375,7 +375,7 @@
 
                 /* Contain Bootstrap styles within this scope */
                 width: 100%;
-                max-width: 600px;
+                max-width: 1200px;
                 margin: 0 auto;
                 padding: 20px;
                 padding-top: 40px;
@@ -413,60 +413,29 @@
             }
         </style>
 
-        <h2>Welcome, {{ username }}!</h2>
+        <h2>Choose your flight</h2>
 
 
-        <!-- Wrap Bootstrap content in scoped container -->
+        <!-- Inside the bootstrap-scope div -->
         <div class="bootstrap-scope">
-            <form id="travel-form">
-                <div class="mb-3">
-                    <label for="sourceCity" class="form-label">Source City</label>
-                    <div class="input-container">
-                        <input type="text" class="form-control" id="sourceCity" required autocomplete="off">
-                        <div id="sourceCityList" class="autocomplete-items"></div>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3>Flight Details</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>From:</strong> {{ source }} ({{ source_code }})</p>
+                            <p><strong>Travel Date:</strong> {{ travel_date }}</p>
+                            <p><strong>Passengers:</strong> {{ passengers }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>To:</strong> {{ destination }} ({{ dest_code }})</p>
+                            <p><strong>Return Date:</strong> {{ return_date }}</p>
+                            <p><strong>Budget:</strong> {{ budget|title }}</p>
+                        </div>
                     </div>
                 </div>
-
-                <div class="mb-3">
-                    <label for="destinationCity" class="form-label">Destination City</label>
-                    <div class="input-container">
-                        <input type="text" class="form-control" id="destinationCity" required autocomplete="off">
-                        <div id="destinationCityList" class="autocomplete-items"></div>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col">
-                        <label for="travelDate" class="form-label">Travel Date</label>
-                        <input type="date" class="form-control" id="travelDate" required>
-                    </div>
-                    <div class="col">
-                        <label for="returnDate" class="form-label">Return Date</label>
-                        <input type="date" class="form-control" id="returnDate" required>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="numPassengers" class="form-label">Number of Travelers</label>
-                    <input type="number" class="form-control" id="numPassengers" min="1" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label d-block">Budget Range</label>
-                    <div class="btn-group" role="group" aria-label="Budget options">
-                        <input type="radio" class="btn-check" name="budgetOptions" id="lowBudget" value="low">
-                        <label class="btn btn-outline-primary" for="lowBudget">Low</label>
-
-                        <input type="radio" class="btn-check" name="budgetOptions" id="mediumBudget" value="medium">
-                        <label class="btn btn-outline-primary" for="mediumBudget">Medium</label>
-
-                        <input type="radio" class="btn-check" name="budgetOptions" id="highBudget" value="high">
-                        <label class="btn btn-outline-primary" for="highBudget">High</label>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100">Plan My Trip</button>
-            </form>
+            </div>
+            <!-- Add more content for flight selection here -->
         </div>
     </div>
 
@@ -487,174 +456,7 @@
             navBar.classList.remove("open");
         });
 
-        // Set min date for travel date to today
-        const travelDateInput = document.getElementById('travelDate');
-        const returnDateInput = document.getElementById('returnDate');
 
-        // Format date to YYYY-MM-DD
-        const today = new Date();
-        const formatDate = (date) => {
-            const d = new Date(date);
-            let month = '' + (d.getMonth() + 1);
-            let day = '' + d.getDate();
-            const year = d.getFullYear();
-
-            if (month.length < 2) month = '0' + month;
-            if (day.length < 2) day = '0' + day;
-
-            return [year, month, day].join('-');
-        };
-
-        // Set min date for travel date
-        travelDateInput.min = formatDate(today);
-
-        // Update return date min when travel date changes
-        travelDateInput.addEventListener('change', function () {
-            returnDateInput.min = this.value;
-            if (returnDateInput.value && returnDateInput.value < this.value) {
-                returnDateInput.value = this.value;
-            }
-        });
-
-        function setupAutocomplete(inputId, listId) {
-            const input = document.getElementById(inputId);
-            const list = document.getElementById(listId);
-            let currentFocus = -1;
-
-            input.addEventListener('input', debounce(async function (e) {
-                const query = this.value;
-                if (!query) {
-                    list.innerHTML = '';
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/home/get_city_suggestions/?query=${encodeURIComponent(query)}`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    const data = await response.json();
-
-                    let html = '';
-                    data.suggestions.forEach((item, index) => {
-                        // Store both city and full display value in data attributes
-                        html += `<div class="autocomplete-item" 
-                    data-index="${index}" 
-                    data-city="${item.city}"
-                    data-full="${item.full}">${item.display}</div>`;
-                    });
-
-                    list.innerHTML = html;
-
-                    // Add click handlers to all suggestion items
-                    const items = list.getElementsByClassName('autocomplete-item');
-                    Array.from(items).forEach(item => {
-                        item.addEventListener('click', function () {
-                            // Use the full city, country value
-                            input.value = this.getAttribute('data-full');
-                            list.innerHTML = '';
-                        });
-                    });
-                } catch (error) {
-                    console.error('Error fetching suggestions:', error);
-                    list.innerHTML = '<div class="error">Error fetching suggestions</div>';
-                }
-            }, 300));
-
-            // Keyboard navigation
-            input.addEventListener('keydown', function (e) {
-                const items = list.getElementsByClassName('autocomplete-item');
-
-                if (e.key === 'ArrowDown') {
-                    currentFocus++;
-                    addActive(items, currentFocus);
-                    e.preventDefault();
-                }
-                else if (e.key === 'ArrowUp') {
-                    currentFocus--;
-                    addActive(items, currentFocus);
-                    e.preventDefault();
-                }
-                else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (currentFocus > -1) {
-                        if (items[currentFocus]) {
-                            // Use the full city, country value
-                            input.value = items[currentFocus].getAttribute('data-full');
-                            list.innerHTML = '';
-                        }
-                    }
-                }
-            });
-        }
-
-        // Debounce function
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func.apply(this, args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        // Initialize autocomplete when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function () {
-            setupAutocomplete('sourceCity', 'sourceCityList');
-            setupAutocomplete('destinationCity', 'destinationCityList');
-        });
-
-
-        // Add this to your existing script section
-        document.getElementById('travel-form').addEventListener('submit', async function (e) {
-            e.preventDefault();
-
-            // Show loading spinner
-            document.getElementById('overlay').style.display = 'block';
-            document.getElementById('loading-spinner').style.display = 'block';
-
-            try {
-                const sourceCity = document.getElementById('sourceCity').value;
-                const destinationCity = document.getElementById('destinationCity').value;
-
-                // First get airport codes
-                const response = await fetch(`/home/get_airport_codes/?source=${encodeURIComponent(sourceCity)}&destination=${encodeURIComponent(destinationCity)}`);
-                const data = await response.json();
-
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                console.log('Airport codes:', data.result);
-
-                // Redirect to select_flight page with the airport codes and other form data
-                const travelDate = document.getElementById('travelDate').value;
-                const returnDate = document.getElementById('returnDate').value;
-                const numPassengers = document.getElementById('numPassengers').value;
-                const budget = document.querySelector('input[name="budgetOptions"]:checked').value;
-
-                const queryParams = new URLSearchParams({
-                    source: sourceCity,
-                    destination: destinationCity,
-                    source_code: data.result.source,
-                    dest_code: data.result.destination,
-                    travel_date: travelDate,
-                    return_date: returnDate,
-                    passengers: numPassengers,
-                    budget: budget
-                });
-
-                window.location.href = `/home/flight/?${queryParams.toString()}`;
-            } catch (error) {
-                alert('Error: ' + error.message);
-                // Hide loading spinner on error
-                document.getElementById('overlay').style.display = 'none';
-                document.getElementById('loading-spinner').style.display = 'none';
-            }
-        });
     </script>
 </body>
 
