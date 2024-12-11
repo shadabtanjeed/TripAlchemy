@@ -38,3 +38,6 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 ```
+## Limitations
+- Only major cities are available currently.
+- Only flights are available as mode of transportation due to lack of data  regarding bus or trains
