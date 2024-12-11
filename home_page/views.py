@@ -45,6 +45,9 @@ def index(request):
     username = request.GET.get("username")
     if not username:
         return redirect("/user_authentication/login/")
+
+    # Store username in session
+    request.session["username"] = username
     return render(
         request,
         "home_page.html",
@@ -136,9 +139,9 @@ def get_airport_codes(request):
 
 
 @firebase_auth_required
-def select_flight(request):
-    # Get parameters from URL
-    context = {
+def flight_page(request):
+    # Store travel details in session
+    request.session["travel_details"] = {
         "source": request.GET.get("source", ""),
         "destination": request.GET.get("destination", ""),
         "source_code": request.GET.get("source_code", ""),
@@ -147,6 +150,10 @@ def select_flight(request):
         "return_date": request.GET.get("return_date", ""),
         "passengers": request.GET.get("passengers", ""),
         "budget": request.GET.get("budget", ""),
+    }
+
+    context = {
+        **request.session["travel_details"],
         "firebase_config": settings.FIREBASE_CONFIG,
     }
     return render(request, "select_flight.html", context)
@@ -299,3 +306,11 @@ def get_flight_data(request):
     except Exception as e:
         print(f"Error processing flight data: {str(e)}")
         return JsonResponse({"error": "Failed to process flight data"}, status=500)
+
+
+@csrf_exempt
+def clear_session(request):
+    if request.method == "POST":
+        request.session.flush()
+        return JsonResponse({"status": "success"})
+    return JsonResponse({"status": "error"}, status=405)

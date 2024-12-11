@@ -43,6 +43,14 @@
                     // Delete the Firebase token cookie
                     document.cookie = 'firebaseToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 
+                    // Clear session data
+                    fetch('/clear_session/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    });
+
                     // Redirect to login page
                     window.location.href = "/user_authentication/login/";
                 } catch (error) {

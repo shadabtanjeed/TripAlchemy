@@ -154,3 +154,10 @@ MESSAGE_TAGS = {
     messages.WARNING: "warning",
     messages.ERROR: "error",
 }
+
+# Session settings
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_AGE = 86400  # 24 hours in seconds
+SESSION_COOKIE_SECURE = True  # Use only with HTTPS
+SESSION_COOKIE_HTTPONLY = True
+SESSION_SAVE_EVERY_REQUEST = True
