@@ -294,6 +294,44 @@
         .input-container {
             position: relative;
         }
+
+        .page-title {
+            text-align: center;
+            padding: 2rem 0;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        #loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+
+        .spinner {
+            width: 3.25em;
+            transform-origin: center;
+            animation: rotate4 2s linear infinite;
+        }
+
+        .spinner circle {
+            fill: none;
+            stroke: #4F46E5;
+            stroke-width: 2;
+            stroke-dasharray: 1, 200;
+            stroke-dashoffset: 0;
+            stroke-linecap: round;
+            animation: dash4 1.5s ease-in-out infinite;
+        }
+
+        .text-primary {
+            color: #4F46E5 !important;
+        }
+
+        .custom-price {
+            color: #4F46E5;
+        }
     </style>
 
     <title>Home Page</title>
@@ -494,9 +532,20 @@
             </div>
             <!-- Add more content for flight selection here -->
 
-            <h3>Choose your flight</h3>
-            <div class="flight-options" id="flightOptions">
-                <!-- JavaScript will populate this -->
+            <h2 class="page-title">Choose Your Flight</h2>
+
+            <div class="container">
+                <!-- Loading Spinner -->
+                <div id="loading-container">
+                    <svg class="spinner" viewBox="25 25 50 50">
+                        <circle r="20" cy="50" cx="50"></circle>
+                    </svg>
+                </div>
+
+                <!-- Flight Options Container -->
+                <div id="flightOptions" style="display: none;">
+                    <!-- Flights will be populated here -->
+                </div>
             </div>
         </div>
     </div>
@@ -504,6 +553,8 @@
 
 
     <script>
+        let flightsLoaded = false;
+
         const navBar = document.querySelector("nav"),
             menuBtns = document.querySelectorAll(".menu-icon"),
             overlay = document.querySelector(".overlay");
@@ -519,6 +570,12 @@
         });
 
         async function loadFlightOptions() {
+
+            if (flightsLoaded) {
+                document.getElementById('loading-container').style.display = 'none';
+                document.getElementById('flightOptions').style.display = 'block';
+                return;
+            }
             try {
                 const response = await fetch('/home/get_flight_data/?from_id={{ source_code }}&to_id={{ dest_code }}&departure_date={{ travel_date }}&return_date={{ return_date }}');
                 const data = await response.json();
@@ -527,6 +584,8 @@
                 container.innerHTML = ''; // Clear existing content
 
                 data.flights.forEach(flight => {
+                    const price = (flight.price.amount / 100).toFixed(2);
+
                     container.innerHTML += `
                     <div class="flight-card">
                         <!-- Outbound Section -->
@@ -582,9 +641,10 @@
                         <!-- Price and Actions Section -->
                         <div class="price-section">
                             <div class="price">
-                                ${flight.price.currency} ${flight.price.amount}
-                                <small class="text-muted d-block">includes VAT ${flight.price.vat}</small>
-                            </div>
+                                <span class="h3 mb-0 custom-price">${flight.price.currency} ${price}</span>
+
+                                <small class="text-muted d-block">includes VAT ${(flight.price.vat / 100).toFixed(2)}</small>
+                                </div>
                             <div class="actions">
                                 <button class="btn btn-outline-primary btn-view-details" onclick="window.open('${flight.shareable_url}', '_blank')">
                                     View Details
@@ -597,6 +657,12 @@
                     </div>
                 `;
                 });
+
+                // Hide loader and show flights
+                document.getElementById('loading-container').style.display = 'none';
+                document.getElementById('flightOptions').style.display = 'block';
+                flightsLoaded = true;
+
             } catch (error) {
                 console.error('Error loading flights:', error);
             }
@@ -605,6 +671,7 @@
         function selectFlight(flightId) {
             // Handle flight selection
             console.log('Selected flight:', flightId);
+            document.getElementById('loading-container').innerHTML = '<p class="text-danger">Error loading flights</p>';
             // Add your selection logic here
         }
 
