@@ -392,6 +392,7 @@ def get_hotel_list(request):
     checkinDate = request.GET.get("checkinDate")
     checkoutDate = request.GET.get("checkoutDate")
     adults = request.GET.get("adults")
+    page = request.GET.get("page", "1")
 
     url = "https://booking-com18.p.rapidapi.com/stays/search"
     querystring = {
@@ -400,7 +401,7 @@ def get_hotel_list(request):
         "checkoutDate": checkoutDate,
         "adults": adults,
         "sortBy": "price",
-        "page": "1",
+        "page": page,
         "units": "metric",
         "temperature": "c",
     }
@@ -414,6 +415,9 @@ def get_hotel_list(request):
         response = requests.get(url, headers=headers, params=querystring)
         response.raise_for_status()
         data = response.json()
+
+        total_pages = data.get("meta", {}).get("totalPages", 1)
+        current_page = int(page)
 
         simplified_hotels = []
         for hotel in data.get("data", []):
@@ -435,8 +439,16 @@ def get_hotel_list(request):
             }
             simplified_hotels.append(simplified_hotel)
 
-        return JsonResponse({"status": "success", "hotels": simplified_hotels})
-
+        return JsonResponse(
+            {
+                "status": "success",
+                "hotels": simplified_hotels,
+                "pagination": {
+                    "current_page": current_page,
+                    "total_pages": total_pages,
+                },
+            }
+        )
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
@@ -481,30 +493,15 @@ def get_hotel_details(request):
 def get_hotels_from_city(request):
     try:
         # Get parameters from request
-
-        # city = request.GET.get("city")
-        # check_in = request.GET.get("check_in")
-        # check_out = request.GET.get("check_out")
-        # guests = request.GET.get("guests", 1)
-        # budget = request.GET.get("budget", "low").lower()
+        page = request.GET.get("page", "1")
 
         # Get travel details from session
-
         travel_details = request.session.get("travel_details", {})
         city = travel_details.get("destination")
         check_in = travel_details.get("travel_date")
         check_out = travel_details.get("return_date")
         guests = travel_details.get("passengers", 1)
         budget = travel_details.get("budget", "low").lower()
-
-        # Validate required parameters
-        if not all([city, check_in, check_out]):
-            return JsonResponse(
-                {
-                    "error": "Missing required parameters. Please provide city, check_in, and check_out"
-                },
-                status=400,
-            )
 
         # Set sortBy based on budget
         sort_by = {"low": "price", "medium": "popularity", "high": "distance"}.get(
@@ -513,68 +510,84 @@ def get_hotels_from_city(request):
 
         # Get city ID
         city_response = requests.get(
-            f"{request.build_absolute_uri('/')[:-1]}/home/get_location_id/",
-            params={"city": city},
+            "https://booking-com18.p.rapidapi.com/stays/auto-complete",
+            headers={
+                "x-rapidapi-key": os.getenv("RAPID_API_BOOKING_KEY"),
+                "x-rapidapi-host": "booking-com18.p.rapidapi.com",
+            },
+            params={"query": city},
         )
         city_data = city_response.json()
-        if "error" in city_data:
+
+        # Find city ID from response
+        city_id = None
+        for location in city_data.get("data", []):
+            if location.get("dest_type") == "city":
+                city_id = location.get("id")
+                break
+
+        if not city_id:
             return JsonResponse({"error": "City not found"}, status=404)
 
-        city_id = city_data.get("city_id")  # Correct key name
+        # Get hotel list with pagination
+        url = "https://booking-com18.p.rapidapi.com/stays/search"
+        querystring = {
+            "locationId": city_id,
+            "checkinDate": check_in,
+            "checkoutDate": check_out,
+            "adults": guests,
+            "sortBy": sort_by,
+            "page": page,
+            "units": "metric",
+        }
 
-        # Get hotel list
-        hotel_list_response = requests.get(
-            f"{request.build_absolute_uri('/')[:-1]}/home/get_hotel_list/",
-            params={
-                "city_id": city_id,
-                "checkinDate": check_in,
-                "checkoutDate": check_out,
-                "adults": guests,
-                "sortBy": sort_by,
-            },
-        )
-        hotel_list_data = hotel_list_response.json()
+        headers = {
+            "x-rapidapi-key": os.getenv("RAPID_API_BOOKING_KEY"),
+            "x-rapidapi-host": "booking-com18.p.rapidapi.com",
+        }
 
-        # Get details for each hotel
-        hotels_with_details = []
-        for hotel in hotel_list_data.get("hotels", []):
-            hotel_details_response = requests.get(
-                f"{request.build_absolute_uri('/')[:-1]}/home/get_hotel_details/",
-                params={
-                    "hotel_id": hotel.get("hotel_id"),  # Changed from id to hotel_id
-                    "checkinDate": check_in,
-                    "checkoutDate": check_out,
-                },
-            )
-            hotel_details = hotel_details_response.json()
+        response = requests.get(url, headers=headers, params=querystring)
+        response.raise_for_status()
+        data = response.json()
 
+        # Process only 3 hotels per page
+        hotels = []
+        all_hotels = data.get("data", [])
+        start_idx = (int(page) - 1) * 3
+        end_idx = start_idx + 3
+
+        for hotel in all_hotels[start_idx:end_idx]:
             hotel_info = {
-                "id": hotel.get("hotel_id"),
-                "name": hotel.get("hotel_name"),
-                "price": hotel.get("hotel_price"),
-                "photo_url": hotel.get("hotel_photo_url"),
-                "review_score": hotel.get("hotel_review_score"),
-                "checkin": hotel.get("checkin"),
-                "checkout": hotel.get("checkout"),
-                "url": hotel_details.get("hotel_details", {}).get("hotel_url"),
-                "address": hotel_details.get("hotel_details", {}).get(
-                    "hotel_address"
-                ),  # Changed to hotel_address
+                "hotel_id": hotel.get("id"),
+                "hotel_name": hotel.get("name"),
+                "hotel_price": {
+                    "amount": hotel.get("priceBreakdown", {})
+                    .get("grossPrice", {})
+                    .get("value"),
+                    "currency": hotel.get("currency"),
+                },
+                "hotel_photo_url": (
+                    hotel.get("photoUrls", [])[0] if hotel.get("photoUrls") else None
+                ),
+                "hotel_review_score": hotel.get("reviewScore"),
+                "checkin": hotel.get("checkin", {}),
+                "checkout": hotel.get("checkout", {}),
+                "url": hotel.get("url"),
+                "address": hotel.get("address", ""),
             }
-            hotels_with_details.append(hotel_info)
+            hotels.append(hotel_info)
+
+        total_hotels = len(all_hotels)
+        total_pages = (total_hotels + 2) // 3  # Ceiling division by 3
 
         return JsonResponse(
             {
                 "status": "success",
-                "city": city,
-                "check_in": check_in,
-                "check_out": check_out,
-                "guests": guests,
-                "budget": budget,
-                "sort_by": sort_by,
-                "hotels": hotels_with_details,
+                "hotels": hotels,
+                "pagination": {"current_page": int(page), "total_pages": total_pages},
             }
         )
 
     except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+        print(f"Error in get_hotels_from_city: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
