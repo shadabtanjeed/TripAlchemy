@@ -764,3 +764,30 @@ def parse_itinerary(itinerary_text):
     itinerary["Mentioned Locations"] = locations
 
     return itinerary
+
+
+@firebase_auth_required
+def itinerary_page(request):
+    context = {
+        "firebase_config": settings.FIREBASE_CONFIG,
+    }
+    return render(request, "itinerary_page.html", context)
+
+
+@csrf_exempt
+def store_hotel_details(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+
+        # Store hotel details in session
+        request.session["hotel_details"] = {
+            "hotel_name": data["hotel_name"],
+            "hotel_price": data["hotel_price"],
+        }
+
+        # print session data
+        print(request.session["hotel_details"])
+
+        return JsonResponse({"status": "success"})
+
+    return JsonResponse({"status": "error"}, status=405)

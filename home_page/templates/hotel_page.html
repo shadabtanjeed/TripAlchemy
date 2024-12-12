@@ -556,6 +556,8 @@
         </div>
     </div>
 
+    <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
+
 
 
     <script>
@@ -660,6 +662,7 @@
             container.innerHTML = '';
 
             data.hotels.forEach(hotel => {
+                console.log('Hotel object:', hotel);
                 const price = hotel.hotel_price.amount;
                 const rating = hotel.hotel_review_score || 'N/A';
                 const stars = '★'.repeat(Math.floor(rating / 2)) + '☆'.repeat(5 - Math.floor(rating / 2));
@@ -698,8 +701,8 @@
                                             <i class="bx bx-link-external"></i> View Details
                                         </button>
                                         <button class="btn btn-primary w-100" 
-                                                onclick="selectHotel('${hotel.hotel_id}')">
-                                            <i class=""></i> Select
+                                            onclick="selectHotel('${hotel.hotel_id}')">
+                                            <i class="bx bx-check"></i> Select
                                         </button>
                                     </div>
                                 </div>
@@ -740,10 +743,63 @@
             }
         });
 
-        // Placeholder function for hotel selection
-        function selectHotel(hotelId) {
-            console.log('Selected hotel:', hotelId);
-            // Implementation will be added later
+        async function selectHotel(hotelId) {
+            // Ensure hotelId is treated as a string consistently
+            hotelId = String(hotelId);
+
+            console.log('Current Page:', currentPage);
+            console.log('Hotel Cache:', hotelCache);
+            console.log('Looking for Hotel ID:', hotelId);
+
+            // Find selected hotel by searching through all cached pages
+            let hotel;
+            for (let cacheKey in hotelCache) {
+                if (cacheKey.startsWith('hotels_page_')) {
+                    hotel = hotelCache[cacheKey].hotels.find(h => String(h.hotel_id) === hotelId);
+                    if (hotel) break;
+                }
+            }
+
+            // If hotel is not found, log an error and return
+            if (!hotel) {
+                console.error('Hotel not found with ID:', hotelId);
+                console.log('Available hotels:',
+                    Object.keys(hotelCache).map(key =>
+                        hotelCache[key].hotels.map(h => h.hotel_id)
+                    )
+                );
+                alert('Unable to select hotel. Please try again.');
+                return;
+            }
+
+            // Get CSRF token from hidden input field
+            const csrfToken = document.getElementById('csrf_token').value;
+
+            // Store hotel details
+            try {
+                const response = await fetch('/home/store_hotel_details/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        hotel_name: hotel.hotel_name,
+                        hotel_price: hotel.hotel_price.amount
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    window.location.href = '/home/itinerary/';
+                } else {
+                    console.error('Error storing hotel details:', data.error);
+                    alert('Failed to store hotel details. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while selecting the hotel.');
+            }
         }
 
         // Initial load
