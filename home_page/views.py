@@ -18,6 +18,7 @@ import firebase_admin
 from firebase_admin import auth
 import requests
 from django.conf import settings
+import re
 
 
 # Custom decorator to verify Firebase ID token
@@ -591,3 +592,175 @@ def get_hotels_from_city(request):
     except Exception as e:
         print(f"Error in get_hotels_from_city: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
+
+
+def get_itinerary_data(request):
+
+    # Get travel details from session
+
+    travel_details = request.session.get("travel_details", {})
+    city = travel_details.get("destination")
+    source = travel_details.get("source")
+    check_in = travel_details.get("travel_date")
+    check_out = travel_details.get("return_date")
+    guests = travel_details.get("passengers", 1)
+    budget = travel_details.get("budget", "low").lower()
+
+    # Get parameters from URL
+
+    # city = request.GET.get("city")
+    # source = request.GET.get("source")
+    # check_in = request.GET.get("check_in")
+    # check_out = request.GET.get("check_out")
+    # guests = request.GET.get("guests", "1")
+    # budget = request.GET.get("budget", "low").lower()
+
+    # For testing purpose:
+    # city = "Singapore"
+    # source = "Dhaka"
+    # check_in = "2024-12-25"
+    # check_out = "2025-01-03"
+    # guests = "4"
+    # budget = "low"
+
+    try:
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        model = genai.GenerativeModel("gemini-1.5-flash")
+
+        prompt = f"""
+        
+
+        Provide me a itinerary for a trip to {city} for {guests} guests with a {budget} budget. 
+        The trip is from {check_in} to {check_out}.
+        The guests are from the city of {source}.
+        The hotel fare, plane fare are already calculated before. Do not consider them. But do consider the meal costs.
+        The trip should include visitng local and popular tourist attractions, dining at local restaurants, and shopping at local markets and much more. If there is any special occassion/event during that time at that location, do consider that as well. Like christam or new year or any festival.
+        But do consider the budget and the number of days of the trip.
+        For low budget, you can consider they are students, for medium budget they are family, and for high budget they are business people.4
+        For each of the activity, mention the approximate cost per person for that activity.
+        Do not use words like luxury hotel, cheap hotel, expensive hotel, or resturants. Just mention the name of the place.
+
+        In separate parts, you should mention the approximate cost per person for the whole trip as well as all the locations mentioned. For mentioning location, you do not need to mention the local places and restaurants which does not have a specific name.
+
+        Use the following format:
+
+        Header: x days itinerary in {city} for {guests} guests.
+        Day 1:
+            Morning:
+            Afternoon:
+            Evening:
+            Night:
+            Approximate cost per person: 
+        Day 2:
+            Morning:
+            Afternoon:
+            Evening:
+            Night:
+            Approximate cost per person:
+        .....
+        
+        Total cost (per person): xxx USD
+
+        Mentioned Locations
+            1. Location 1
+            2. Location 2
+            3. Location 3
+            ....
+
+        Example:
+
+        Header: 3 days itinerary in Paris for 2 guests.
+        Day 1:
+            Morning: Visit Eiffel Tower
+            Afternoon: Lunch at local cafe
+            Evening: Visit Louvre Museum
+            Night: Dinner at local restaurant
+            Approximate cost per person: 100 USD
+        Day 2:
+            Morning: Visit Notre Dame Cathedral
+            Afternoon: Lunch at local cafe
+            Evening: Shopping at local market
+            Night: Dinner at local restaurant
+            Approximate cost per person: 150 USD
+        Day 3:
+            Morning: Visit Palace of Versailles
+            Afternoon: Lunch at local cafe
+            Evening: Visit Montmartre
+            Night: Dinner at local restaurant
+            Approximate cost per person: 200 USD
+        
+        Total cost (per person): 450 USD
+
+        Mentioned Locations
+            1. Eiffel Tower
+            2. Louvre Museum
+            3. Notre Dame Cathedral
+            4. Palace of Versailles
+            5. Montmartre
+        
+
+        Give nothing else apart from the itinerary in the above format.
+        Do not add anything extra in total costs. Just mention the total cost. like 100 USD or 200 USD. Do not add currency symbol at the end/front of the total cost. 
+        Same thing goes for mentioned location. For mentioned location, do not mention anything that has no specific name like local market or local restaurant.
+
+        """
+
+        result = model.generate_content(prompt)
+        itinerary_text = result.text
+
+        # Parse the generated text into structured JSON
+        itinerary = parse_itinerary(itinerary_text)
+
+        return JsonResponse({"status": "success", "itinerary": itinerary})
+
+    except Exception as e:
+        print(f"Error getting itinerary: {e}")
+        return JsonResponse({"error": "Failed to get itinerary"}, status=500)
+
+
+def parse_itinerary(itinerary_text):
+    itinerary = {}
+    days = []
+    locations = []
+
+    # Extract header
+    header_match = re.search(r"Header: (.+)", itinerary_text)
+    if header_match:
+        itinerary["header"] = header_match.group(1)
+
+    # Extract days
+    day_matches = re.findall(
+        r"Day \d+:(.+?)(?=Day \d+:|Total cost)", itinerary_text, re.DOTALL
+    )
+    for day_match in day_matches:
+        day = {}
+        day_parts = re.findall(
+            r"(Morning|Afternoon|Evening|Night):(.+?)(?=(Morning|Afternoon|Evening|Night|Approximate cost))",
+            day_match,
+            re.DOTALL,
+        )
+        for part in day_parts:
+            day[part[0].strip()] = part[1].strip()
+        cost_match = re.search(r"Approximate cost per person: (.+)", day_match)
+        if cost_match:
+            day["Approximate cost per person"] = cost_match.group(1).strip()
+        days.append(day)
+
+    itinerary["days"] = days
+
+    # Extract total cost
+    total_cost_match = re.search(r"Total cost \(per person\): (.+)", itinerary_text)
+    if total_cost_match:
+        itinerary["Total cost (per person)"] = total_cost_match.group(1).strip()
+
+    # Extract mentioned locations
+    locations_match = re.search(r"Mentioned Locations(.+)", itinerary_text, re.DOTALL)
+    if locations_match:
+        locations = [
+            loc.strip()
+            for loc in locations_match.group(1).strip().split("\n")
+            if loc.strip()
+        ]
+    itinerary["Mentioned Locations"] = locations
+
+    return itinerary
