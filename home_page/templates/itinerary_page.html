@@ -386,6 +386,76 @@
                 border-color: #4F46E5;
                 box-shadow: 0 0 0 0.25rem rgba(79, 70, 229, 0.25);
             }
+
+            .container {
+                max-width: 1000px;
+                margin: 2rem auto;
+                padding: 1rem;
+                background-color: #fff;
+                border-radius: 0.5rem;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+
+            .header {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+
+            .header h1 {
+                color: #4F46E5;
+                font-size: 2rem;
+                margin: 0;
+            }
+
+            .day {
+                margin-bottom: 1.5rem;
+            }
+
+            .day h2 {
+                color: #4F46E5;
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .activity {
+                margin-bottom: 0.5rem;
+            }
+
+            .activity span {
+                font-weight: 600;
+            }
+
+            .cost {
+                font-weight: 600;
+                color: #4F46E5;
+            }
+
+            .total-cost {
+                text-align: center;
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #4F46E5;
+                margin-top: 2rem;
+            }
+
+            .locations {
+                margin-top: 2rem;
+            }
+
+            .locations h3 {
+                color: #4F46E5;
+                font-size: 1.25rem;
+                margin-bottom: 1rem;
+            }
+
+            .locations ul {
+                list-style-type: none;
+                padding: 0;
+            }
+
+            .locations ul li {
+                margin-bottom: 0.5rem;
+            }
         </style>
 
         <h2>Itinerary Page</h2>
@@ -394,6 +464,48 @@
         <!-- Wrap Bootstrap content in scoped container -->
         <div class="bootstrap-scope">
 
+        </div>
+
+        <div class="container">
+            {% if itinerary %}
+            <div class="header">
+                <h1>{{ itinerary.header }}</h1>
+            </div>
+
+            {% for day in itinerary.days %}
+            <div class="day">
+                <h2>Day {{ forloop.counter }}</h2>
+                {% for time, activity in day.items %}
+                {% if time != "Approximate cost per person" %}
+                <div class="activity">
+                    <span>{{ time }}:</span> {{ activity }}
+                </div>
+                {% else %}
+                <div class="cost">
+                    {{ time }}: {{ activity }}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% endfor %}
+
+            <div class="total-cost">
+                Total cost (per person): {{ itinerary.total_cost_per_person }}
+            </div>
+
+            <div class="locations">
+                <h3>Mentioned Locations</h3>
+                <ul>
+                    {% for location in itinerary.mentioned_locations %}
+                    <li>{{ location }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% else %}
+            <div class="alert alert-danger">
+                {{ error }}
+            </div>
+            {% endif %}
         </div>
     </div>
 

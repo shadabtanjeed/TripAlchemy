@@ -711,11 +711,11 @@ def get_itinerary_data(request):
         # Parse the generated text into structured JSON
         itinerary = parse_itinerary(itinerary_text)
 
-        return JsonResponse({"status": "success", "itinerary": itinerary})
+        return {"status": "success", "itinerary": itinerary}
 
     except Exception as e:
         print(f"Error getting itinerary: {e}")
-        return JsonResponse({"error": "Failed to get itinerary"}, status=500)
+        return {"status": "error", "message": "Failed to get itinerary"}
 
 
 def parse_itinerary(itinerary_text):
@@ -751,7 +751,7 @@ def parse_itinerary(itinerary_text):
     # Extract total cost
     total_cost_match = re.search(r"Total cost \(per person\): (.+)", itinerary_text)
     if total_cost_match:
-        itinerary["Total cost (per person)"] = total_cost_match.group(1).strip()
+        itinerary["total_cost_per_person"] = total_cost_match.group(1).strip()
 
     # Extract mentioned locations
     locations_match = re.search(r"Mentioned Locations(.+)", itinerary_text, re.DOTALL)
@@ -761,16 +761,23 @@ def parse_itinerary(itinerary_text):
             for loc in locations_match.group(1).strip().split("\n")
             if loc.strip()
         ]
-    itinerary["Mentioned Locations"] = locations
+    itinerary["mentioned_locations"] = locations
 
     return itinerary
 
 
-@firebase_auth_required
 def itinerary_page(request):
-    context = {
-        "firebase_config": settings.FIREBASE_CONFIG,
-    }
+    itinerary_data = get_itinerary_data(request)
+    if itinerary_data["status"] == "success":
+        context = {
+            "itinerary": itinerary_data["itinerary"],
+            "firebase_config": settings.FIREBASE_CONFIG,
+        }
+    else:
+        context = {
+            "error": itinerary_data["message"],
+            "firebase_config": settings.FIREBASE_CONFIG,
+        }
     return render(request, "itinerary_page.html", context)
 
 
