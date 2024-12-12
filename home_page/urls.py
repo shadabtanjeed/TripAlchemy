@@ -27,4 +27,9 @@ urlpatterns = [
     path("parse_itinerary/", views.parse_itinerary, name="parse_itinerary"),
     path("itinerary/", views.itinerary_page, name="itinerary_page"),
     path("store_hotel_details/", views.store_hotel_details, name="store_hotel_details"),
+    path(
+        "get_geocoding_from_place/",
+        views.get_geocoding_from_place,
+        name="get_geocoding_from_place",
+    ),
 ]

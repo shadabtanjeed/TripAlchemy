@@ -808,3 +808,26 @@ def get_itinerary_data_view(request):
     except Exception as e:
         error_data = {"status": "error", "message": str(e)}
         return JsonResponse(error_data, status=500)
+
+
+@csrf_exempt
+def get_geocoding_from_place(request):
+    place = request.GET.get("place")
+
+    if not place:
+        return JsonResponse({"error": "Missing place parameter"}, status=400)
+
+    mapbox_access_token = os.getenv("MAPBOX_ACCESS_TOKEN")
+    if not mapbox_access_token:
+        return JsonResponse({"error": "Missing Mapbox access token"}, status=500)
+
+    endpoint = "https://api.mapbox.com/search/geocode/v6/forward"
+    params = {"q": place, "proximity": "ip", "access_token": mapbox_access_token}
+
+    try:
+        response = requests.get(endpoint, params=params)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        data = response.json()
+        return JsonResponse(data)
+    except requests.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=500)
