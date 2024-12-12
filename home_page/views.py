@@ -625,7 +625,7 @@ def get_itinerary_data(request):
 
     try:
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-1.5-pro")
 
         prompt = f"""
         
@@ -699,7 +699,7 @@ def get_itinerary_data(request):
             5. Montmartre
         
 
-        Give nothing else apart from the itinerary in the above format.
+        Give nothing else apart from the itinerary in the above format.You must add header. 
         Do not add anything extra in total costs. Just mention the total cost. like 100 USD or 200 USD. Do not add currency symbol at the end/front of the total cost. 
         Same thing goes for mentioned location. For mentioned location, do not mention anything that has no specific name like local market or local restaurant.
 
@@ -798,3 +798,13 @@ def store_hotel_details(request):
         return JsonResponse({"status": "success"})
 
     return JsonResponse({"status": "error"}, status=405)
+
+
+@csrf_exempt
+def get_itinerary_data_view(request):
+    try:
+        data = get_itinerary_data(request)
+        return JsonResponse(data)
+    except Exception as e:
+        error_data = {"status": "error", "message": str(e)}
+        return JsonResponse(error_data, status=500)
