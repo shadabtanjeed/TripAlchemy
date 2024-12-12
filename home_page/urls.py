@@ -21,4 +21,10 @@ urlpatterns = [
     path(
         "get_hotels_from_city/", views.get_hotels_from_city, name="get_hotels_from_city"
     ),
+    path(
+        "get_itinerary_data/", views.get_itinerary_data_view, name="get_itinerary_data"
+    ),
+    path("parse_itinerary/", views.parse_itinerary, name="parse_itinerary"),
+    path("itinerary/", views.itinerary_page, name="itinerary_page"),
+    path("store_hotel_details/", views.store_hotel_details, name="store_hotel_details"),
 ]

@@ -356,29 +356,19 @@
                 padding: 20px;
             }
 
-            .card {
-                border-radius: 1rem;
-                border: 1px solid #e5e7eb;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            }
 
-            .card-title {
-                color: #111827;
-                font-weight: 600;
-                font-size: 1.5rem;
-            }
 
             .info-group label {
                 display: block;
                 margin-bottom: 0.25rem;
             }
 
-            #loading-container {
+            /* #loading-container {
                 display: flex;
                 justify-content: center;
                 width: 100%;
                 padding: 2rem 0;
-            }
+            } */
 
             .spinner {
                 width: 3.25em;
@@ -425,6 +415,78 @@
                 color: #111827;
                 margin-top: -50px;
             }
+
+            .card {
+                border-radius: 1rem;
+                border: 1px solid #e5e7eb;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                height: 100%;
+            }
+
+            .card-body {
+                padding: 1.5rem;
+            }
+
+            .card-title {
+                color: #4F46E5;
+                font-weight: 600;
+                margin-bottom: 1rem;
+            }
+
+            .text-primary {
+                color: #4F46E5 !important;
+            }
+
+            .stars {
+                color: #d7b700;
+            }
+
+            .btn-primary {
+                background-color: #4F46E5;
+                border-color: #4F46E5;
+            }
+
+            .btn-primary:hover {
+                background-color: #423bbd;
+                border-color: #423bbd;
+            }
+
+            .btn-outline-primary {
+                color: #4F46E5;
+                border-color: #4F46E5;
+            }
+
+            .btn-outline-primary:hover {
+                background-color: #4F46E5;
+                border-color: #4F46E5;
+                color: #ffffff;
+            }
+
+            .card .btn {
+                padding: 0.5rem 1rem;
+                font-weight: 500;
+            }
+
+            .mt-auto {
+                margin-top: auto !important;
+            }
+
+            .d-grid {
+                display: grid !important;
+                gap: 0.5rem !important;
+            }
+
+            .card-text {
+                margin-bottom: 0.75rem;
+            }
+
+            .loading-container-2 {
+                display: flex;
+                justify-content: center;
+                width: 100%;
+                padding: 2rem 0;
+                margin: 0 auto;
+            }
         </style>
 
         <!-- <h2>Select Hotel</h2> -->
@@ -443,20 +505,24 @@
                                 <label class="text-muted small">Location</label>
                                 <p class="mb-0 fw-semibold">{{ destination }}</p>
                             </div>
-                            <div class="info-group mb-3">
-                                <label class="text-muted small">Check-in Date</label>
-                                <p class="mb-0 fw-semibold">{{ check_in }}</p>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="info-group mb-3">
-                                <label class="text-muted small">Check-out Date</label>
-                                <p class="mb-0 fw-semibold">{{ check_out }}</p>
-                            </div>
+
                             <div class="info-group mb-3">
                                 <label class="text-muted small">Number of Guests</label>
                                 <p class="mb-0 fw-semibold">{{ guests }}</p>
                             </div>
+
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-group mb-3">
+                                <label class="text-muted small">Check-in Date</label>
+                                <p class="mb-0 fw-semibold">{{ check_in }}</p>
+                            </div>
+
+                            <div class="info-group mb-3">
+                                <label class="text-muted small">Check-out Date</label>
+                                <p class="mb-0 fw-semibold">{{ check_out }}</p>
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -466,17 +532,31 @@
 
             <p><b>Note:</b> The mentioned price is for all the guests (adults).</p>
 
-            <div id="loading-container">
-                <svg class="spinner" viewBox="25 25 50 50">
-                    <circle r="20" cy="50" cx="50"></circle>
-                </svg>
+            <div class="loading-container-2">
+                <!-- Loading Spinner -->
+                <div id="loading-container">
+                    <svg class="spinner" viewBox="25 25 50 50">
+                        <circle r="20" cy="50" cx="50"></circle>
+                    </svg>
+                </div>
             </div>
 
-            <!-- Hotel results will go here -->
-            <div id="hotelOptions" style="display: none;">
+            <div id="hotelOptions" class="row g-4">
+                <!-- Hotels will be loaded here -->
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-container text-center mt-4" style="display: none;">
+                <div class="btn-group" role="group" aria-label="Pagination">
+                    <button class="btn btn-outline-primary" id="prevPage" disabled>Previous</button>
+                    <button class="btn btn-outline-primary disabled" id="pageInfo">Page 1 of 1</button>
+                    <button class="btn btn-outline-primary" id="nextPage">Next</button>
+                </div>
             </div>
         </div>
     </div>
+
+    <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
 
 
 
@@ -517,6 +597,213 @@
             document.getElementById('overlay').style.display = 'none';
             document.getElementById('loading-spinner').style.display = 'none';
         });
+
+        // hotel part
+
+        // Cache object to store hotel data
+        const hotelCache = {};
+        let currentPage = 1;
+        let totalPages = 1;
+
+        async function loadHotelOptions(page = 1, useCache = true) {
+            // Show loading state
+            document.getElementById('loading-container').style.display = 'block';
+            document.getElementById('hotelOptions').style.display = 'none';
+            document.querySelector('.pagination-container').style.display = 'none';
+
+            // Check cache first if useCache is true
+            const cacheKey = `hotels_page_${page}`;
+            if (useCache && hotelCache[cacheKey]) {
+                displayHotels(hotelCache[cacheKey]);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/home/get_hotels_from_city/?page=${page}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Cache the response
+                hotelCache[cacheKey] = data;
+                displayHotels(data);
+            } catch (error) {
+                console.error('Error loading hotels:', error);
+                document.getElementById('loading-container').innerHTML = `
+            <div class="alert alert-danger" role="alert">
+                Error loading hotels: ${error.message}
+                <button class="btn btn-outline-danger mt-2" onclick="loadHotelOptions(1, false)">
+                    Try Again
+                </button>
+            </div>`;
+            }
+        }
+
+        function displayHotels(data) {
+            if (!data.hotels || data.hotels.length === 0) {
+                document.getElementById('hotelOptions').innerHTML = `
+            <div class="col-12 text-center">
+                <div class="alert alert-info">
+                    No hotels found for the selected criteria.
+                </div>
+            </div>`;
+                return;
+            }
+
+            currentPage = data.pagination.current_page;
+            totalPages = data.pagination.total_pages;
+
+            const container = document.getElementById('hotelOptions');
+            container.innerHTML = '';
+
+            data.hotels.forEach(hotel => {
+                console.log('Hotel object:', hotel);
+                const price = hotel.hotel_price.amount;
+                const rating = hotel.hotel_review_score || 'N/A';
+                const stars = '★'.repeat(Math.floor(rating / 2)) + '☆'.repeat(5 - Math.floor(rating / 2));
+
+                container.innerHTML += `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card h-100 shadow-sm">
+                            <img src="${hotel.hotel_photo_url || 'https://via.placeholder.com/300x200?text=No+Image'}" 
+                                class="card-img-top" 
+                                alt="${hotel.hotel_name}"
+                                style="height: 200px; object-fit: cover;">
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title text-primary">${hotel.hotel_name}</h5>
+                                <p class="card-text">
+                                <small class="text-muted">
+                                    Rating: <span class="stars">${stars}</span> (${rating})
+                                </small>
+                                </p>
+                                <p class="card-text">
+                                    <i class="bx bx-map text-primary"></i> ${hotel.address}
+                                </p>
+                                <p class="card-text">
+                                    <strong class="text-primary">Price:</strong> 
+                                    <span class="fw-bold">${price} ${hotel.hotel_price.currency}</span>
+                                </p>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="bx bx-time"></i> Check-in: ${hotel.checkin.fromTime} - ${hotel.checkin.untilTime}<br>
+                                        <i class="bx bx-time"></i> Check-out: ${hotel.checkout.fromTime} - ${hotel.checkout.untilTime}
+                                    </small>
+                                </p>
+                                <div class="mt-auto">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-outline-primary w-100" 
+                                                onclick="window.open('${hotel.url}', '_blank')">
+                                            <i class="bx bx-link-external"></i> View Details
+                                        </button>
+                                        <button class="btn btn-primary w-100" 
+                                            onclick="selectHotel('${hotel.hotel_id}')">
+                                            <i class="bx bx-check"></i> Select
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+
+            // Update pagination
+            updatePagination();
+
+            // Show content
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('hotelOptions').style.display = 'flex';
+            document.querySelector('.pagination-container').style.display = 'block';
+        }
+
+        function updatePagination() {
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+            const pageInfo = document.getElementById('pageInfo');
+
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+        }
+
+        // Add event listeners for pagination
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                loadHotelOptions(currentPage - 1, true);
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                loadHotelOptions(currentPage + 1, true);
+            }
+        });
+
+        async function selectHotel(hotelId) {
+            // Ensure hotelId is treated as a string consistently
+            hotelId = String(hotelId);
+
+            console.log('Current Page:', currentPage);
+            console.log('Hotel Cache:', hotelCache);
+            console.log('Looking for Hotel ID:', hotelId);
+
+            // Find selected hotel by searching through all cached pages
+            let hotel;
+            for (let cacheKey in hotelCache) {
+                if (cacheKey.startsWith('hotels_page_')) {
+                    hotel = hotelCache[cacheKey].hotels.find(h => String(h.hotel_id) === hotelId);
+                    if (hotel) break;
+                }
+            }
+
+            // If hotel is not found, log an error and return
+            if (!hotel) {
+                console.error('Hotel not found with ID:', hotelId);
+                console.log('Available hotels:',
+                    Object.keys(hotelCache).map(key =>
+                        hotelCache[key].hotels.map(h => h.hotel_id)
+                    )
+                );
+                alert('Unable to select hotel. Please try again.');
+                return;
+            }
+
+            // Get CSRF token from hidden input field
+            const csrfToken = document.getElementById('csrf_token').value;
+
+            // Store hotel details
+            try {
+                const response = await fetch('/home/store_hotel_details/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        hotel_name: hotel.hotel_name,
+                        hotel_price: hotel.hotel_price.amount
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    window.location.href = '/home/itinerary/';
+                } else {
+                    console.error('Error storing hotel details:', data.error);
+                    alert('Failed to store hotel details. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while selecting the hotel.');
+            }
+        }
+
+        // Initial load
+        loadHotelOptions(1, false);
     </script>
 </body>
 

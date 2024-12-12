@@ -9,8 +9,8 @@ TripAlchemy is an AI-powered travel planning platform that simplifies trip manag
 - **Backend**: Django
 - **Frontend**: HTML, Bootstrap, CSS
 - **Database**: Firebase
-- **APIs**: Mapbox, OpenWeather, Air Scraper, Booking.com
-- **AI Tools**: Google Gemini 1.5
+- **APIs**: Mapbox, OpenWeather, Air Scraper
+- **AI Tools**: Google Vision AI, Deepai.org ...
 
 ## Features
 - **Intelligent Itinerary Generation**: Destination-based planning with transport, accommodation, and budget recommendations
@@ -42,4 +42,4 @@ python manage.py runserver
 - Only major cities are available currently.
 - Only flights are available as mode of transportation due to lack of data  regarding bus or trains.
 - Flights with stops do not have any indications in the flight picker page(yet). However, it can be easily known from the details of that flight.
-- Getting hotel list relies on performing 3 API calls sequentially, reulting in HUUUUGE load time.
+- Getting hotel list relies on performing 3 API calls sequentially, reulting in HUUUUGE load time. Same case for itinerary generation.

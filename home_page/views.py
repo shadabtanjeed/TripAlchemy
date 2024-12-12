@@ -18,6 +18,7 @@ import firebase_admin
 from firebase_admin import auth
 import requests
 from django.conf import settings
+import re
 
 
 # Custom decorator to verify Firebase ID token
@@ -392,6 +393,7 @@ def get_hotel_list(request):
     checkinDate = request.GET.get("checkinDate")
     checkoutDate = request.GET.get("checkoutDate")
     adults = request.GET.get("adults")
+    page = request.GET.get("page", "1")
 
     url = "https://booking-com18.p.rapidapi.com/stays/search"
     querystring = {
@@ -400,7 +402,7 @@ def get_hotel_list(request):
         "checkoutDate": checkoutDate,
         "adults": adults,
         "sortBy": "price",
-        "page": "1",
+        "page": page,
         "units": "metric",
         "temperature": "c",
     }
@@ -414,6 +416,9 @@ def get_hotel_list(request):
         response = requests.get(url, headers=headers, params=querystring)
         response.raise_for_status()
         data = response.json()
+
+        total_pages = data.get("meta", {}).get("totalPages", 1)
+        current_page = int(page)
 
         simplified_hotels = []
         for hotel in data.get("data", []):
@@ -435,8 +440,16 @@ def get_hotel_list(request):
             }
             simplified_hotels.append(simplified_hotel)
 
-        return JsonResponse({"status": "success", "hotels": simplified_hotels})
-
+        return JsonResponse(
+            {
+                "status": "success",
+                "hotels": simplified_hotels,
+                "pagination": {
+                    "current_page": current_page,
+                    "total_pages": total_pages,
+                },
+            }
+        )
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
@@ -468,7 +481,7 @@ def get_hotel_details(request):
 
         simplified_data = {
             "hotel_url": data.get("data", {}).get("url"),
-            "hote_address": data.get("data", {}).get("address"),
+            "hotel_address": data.get("data", {}).get("address"),
         }
 
         return JsonResponse({"status": "success", "hotel_details": simplified_data})
@@ -480,13 +493,6 @@ def get_hotel_details(request):
 @csrf_exempt
 def get_hotels_from_city(request):
     try:
-        # Get parameters from request
-
-        # city = request.GET.get("city")
-        # check_in = request.GET.get("check_in")
-        # check_out = request.GET.get("check_out")
-        # guests = request.GET.get("guests", 1)
-        # budget = request.GET.get("budget", "low").lower()
 
         # Get travel details from session
 
@@ -497,6 +503,15 @@ def get_hotels_from_city(request):
         guests = travel_details.get("passengers", 1)
         budget = travel_details.get("budget", "low").lower()
 
+        # Get parameters from URL
+
+        # city = request.GET.get("city")
+        # check_in = request.GET.get("check_in")
+        # check_out = request.GET.get("check_out")
+        # guests = request.GET.get("guests", "1")
+        # budget = request.GET.get("budget", "low").lower()
+        page = request.GET.get("page", "1")
+
         # Validate required parameters
         if not all([city, check_in, check_out]):
             return JsonResponse(
@@ -506,23 +521,18 @@ def get_hotels_from_city(request):
                 status=400,
             )
 
-        # Set sortBy based on budget
-        sort_by = {"low": "price", "medium": "popularity", "high": "distance"}.get(
-            budget, "price"
-        )
-
-        # Get city ID
-        city_response = requests.get(
+        # Step 1: Get location ID
+        location_response = requests.get(
             f"{request.build_absolute_uri('/')[:-1]}/home/get_location_id/",
             params={"city": city},
         )
-        city_data = city_response.json()
-        if "error" in city_data:
+        location_data = location_response.json()
+        if "error" in location_data:
             return JsonResponse({"error": "City not found"}, status=404)
 
-        city_id = city_data.get("city_id")  # Correct key name
+        city_id = location_data.get("city_id")
 
-        # Get hotel list
+        # Step 2: Get hotel list
         hotel_list_response = requests.get(
             f"{request.build_absolute_uri('/')[:-1]}/home/get_hotel_list/",
             params={
@@ -530,51 +540,271 @@ def get_hotels_from_city(request):
                 "checkinDate": check_in,
                 "checkoutDate": check_out,
                 "adults": guests,
-                "sortBy": sort_by,
+                "budget": budget,
+                "page": page,
             },
         )
         hotel_list_data = hotel_list_response.json()
 
-        # Get details for each hotel
-        hotels_with_details = []
-        for hotel in hotel_list_data.get("hotels", []):
+        # Process only 1 hotels per page
+        hotels = []
+        all_hotels = hotel_list_data.get("hotels", [])
+        start_idx = (int(page) - 1) * 1
+        end_idx = start_idx + 1
+
+        # Step 3: Get details for each hotel in the page
+        for hotel in all_hotels[start_idx:end_idx]:
             hotel_details_response = requests.get(
                 f"{request.build_absolute_uri('/')[:-1]}/home/get_hotel_details/",
                 params={
-                    "hotel_id": hotel.get("hotel_id"),  # Changed from id to hotel_id
+                    "hotel_id": hotel.get("hotel_id"),
                     "checkinDate": check_in,
                     "checkoutDate": check_out,
                 },
             )
             hotel_details = hotel_details_response.json()
 
+            # Combine hotel info with details
             hotel_info = {
-                "id": hotel.get("hotel_id"),
-                "name": hotel.get("hotel_name"),
-                "price": hotel.get("hotel_price"),
-                "photo_url": hotel.get("hotel_photo_url"),
-                "review_score": hotel.get("hotel_review_score"),
+                "hotel_id": hotel.get("hotel_id"),
+                "hotel_name": hotel.get("hotel_name"),
+                "hotel_price": hotel.get("hotel_price"),
+                "hotel_photo_url": hotel.get("hotel_photo_url"),
+                "hotel_review_score": hotel.get("hotel_review_score"),
                 "checkin": hotel.get("checkin"),
                 "checkout": hotel.get("checkout"),
                 "url": hotel_details.get("hotel_details", {}).get("hotel_url"),
-                "address": hotel_details.get("hotel_details", {}).get(
-                    "hotel_address"
-                ),  # Changed to hotel_address
+                "address": hotel_details.get("hotel_details", {}).get("hotel_address"),
             }
-            hotels_with_details.append(hotel_info)
+            hotels.append(hotel_info)
+
+        total_hotels = len(all_hotels)
+        total_pages = (total_hotels + 2) // 3  # Ceiling division by 3
 
         return JsonResponse(
             {
                 "status": "success",
-                "city": city,
-                "check_in": check_in,
-                "check_out": check_out,
-                "guests": guests,
-                "budget": budget,
-                "sort_by": sort_by,
-                "hotels": hotels_with_details,
+                "hotels": hotels,
+                "pagination": {"current_page": int(page), "total_pages": total_pages},
             }
         )
 
     except Exception as e:
-        return JsonResponse({"status": "error", "message": str(e)}, status=500)
+        print(f"Error in get_hotels_from_city: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+def get_itinerary_data(request):
+
+    # Get travel details from session
+
+    travel_details = request.session.get("travel_details", {})
+    city = travel_details.get("destination")
+    source = travel_details.get("source")
+    check_in = travel_details.get("travel_date")
+    check_out = travel_details.get("return_date")
+    guests = travel_details.get("passengers", 1)
+    budget = travel_details.get("budget", "low").lower()
+
+    # Get parameters from URL
+
+    # city = request.GET.get("city")
+    # source = request.GET.get("source")
+    # check_in = request.GET.get("check_in")
+    # check_out = request.GET.get("check_out")
+    # guests = request.GET.get("guests", "1")
+    # budget = request.GET.get("budget", "low").lower()
+
+    # For testing purpose:
+    # city = "Singapore"
+    # source = "Dhaka"
+    # check_in = "2024-12-25"
+    # check_out = "2025-01-03"
+    # guests = "4"
+    # budget = "low"
+
+    try:
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        model = genai.GenerativeModel("gemini-1.5-pro")
+
+        prompt = f"""
+        
+
+        Provide me a itinerary for a trip to {city} for {guests} guests with a {budget} budget. 
+        The trip is from {check_in} to {check_out}.
+        The guests are from the city of {source}.
+        The hotel fare, plane fare are already calculated before. Do not consider them. But do consider the meal costs.
+        The trip should include visitng local and popular tourist attractions, dining at local restaurants, and shopping at local markets and much more. If there is any special occassion/event during that time at that location, do consider that as well. Like christam or new year or any festival.
+        But do consider the budget and the number of days of the trip.
+        For low budget, you can consider they are students, for medium budget they are family, and for high budget they are business people.4
+        For each of the activity, mention the approximate cost per person for that activity.
+        Do not use words like luxury hotel, cheap hotel, expensive hotel, or resturants. Just mention the name of the place.
+
+        In separate parts, you should mention the approximate cost per person for the whole trip as well as all the locations mentioned. For mentioning location, you do not need to mention the local places and restaurants which does not have a specific name.
+
+        Use the following format:
+
+        Header: x days itinerary in {city} for {guests} guests.
+        Day 1:
+            Morning:
+            Afternoon:
+            Evening:
+            Night:
+            Approximate cost per person: 
+        Day 2:
+            Morning:
+            Afternoon:
+            Evening:
+            Night:
+            Approximate cost per person:
+        .....
+        
+        Total cost (per person): xxx USD
+
+        Mentioned Locations
+            1. Location 1
+            2. Location 2
+            3. Location 3
+            ....
+
+        Example:
+
+        Header: 3 days itinerary in Paris for 2 guests.
+        Day 1:
+            Morning: Visit Eiffel Tower
+            Afternoon: Lunch at local cafe
+            Evening: Visit Louvre Museum
+            Night: Dinner at local restaurant
+            Approximate cost per person: 100 USD
+        Day 2:
+            Morning: Visit Notre Dame Cathedral
+            Afternoon: Lunch at local cafe
+            Evening: Shopping at local market
+            Night: Dinner at local restaurant
+            Approximate cost per person: 150 USD
+        Day 3:
+            Morning: Visit Palace of Versailles
+            Afternoon: Lunch at local cafe
+            Evening: Visit Montmartre
+            Night: Dinner at local restaurant
+            Approximate cost per person: 200 USD
+        
+        Total cost (per person): 450 USD
+
+        Mentioned Locations
+            1. Eiffel Tower
+            2. Louvre Museum
+            3. Notre Dame Cathedral
+            4. Palace of Versailles
+            5. Montmartre
+        
+
+        Give nothing else apart from the itinerary in the above format.You must add header. 
+        Do not add anything extra in total costs. Just mention the total cost. like 100 USD or 200 USD. Do not add currency symbol at the end/front of the total cost. 
+        Same thing goes for mentioned location. For mentioned location, do not mention anything that has no specific name like local market or local restaurant.
+
+        """
+
+        result = model.generate_content(prompt)
+        itinerary_text = result.text
+
+        # Parse the generated text into structured JSON
+        itinerary = parse_itinerary(itinerary_text)
+
+        return {"status": "success", "itinerary": itinerary}
+
+    except Exception as e:
+        print(f"Error getting itinerary: {e}")
+        return {"status": "error", "message": "Failed to get itinerary"}
+
+
+def parse_itinerary(itinerary_text):
+    itinerary = {}
+    days = []
+    locations = []
+
+    # Extract header
+    header_match = re.search(r"Header: (.+)", itinerary_text)
+    if header_match:
+        itinerary["header"] = header_match.group(1)
+
+    # Extract days
+    day_matches = re.findall(
+        r"Day \d+:(.+?)(?=Day \d+:|Total cost)", itinerary_text, re.DOTALL
+    )
+    for day_match in day_matches:
+        day = {}
+        day_parts = re.findall(
+            r"(Morning|Afternoon|Evening|Night):(.+?)(?=(Morning|Afternoon|Evening|Night|Approximate cost))",
+            day_match,
+            re.DOTALL,
+        )
+        for part in day_parts:
+            day[part[0].strip()] = part[1].strip()
+        cost_match = re.search(r"Approximate cost per person: (.+)", day_match)
+        if cost_match:
+            day["Approximate cost per person"] = cost_match.group(1).strip()
+        days.append(day)
+
+    itinerary["days"] = days
+
+    # Extract total cost
+    total_cost_match = re.search(r"Total cost \(per person\): (.+)", itinerary_text)
+    if total_cost_match:
+        itinerary["total_cost_per_person"] = total_cost_match.group(1).strip()
+
+    # Extract mentioned locations
+    locations_match = re.search(r"Mentioned Locations(.+)", itinerary_text, re.DOTALL)
+    if locations_match:
+        locations = [
+            loc.strip()
+            for loc in locations_match.group(1).strip().split("\n")
+            if loc.strip()
+        ]
+    itinerary["mentioned_locations"] = locations
+
+    return itinerary
+
+
+def itinerary_page(request):
+    itinerary_data = get_itinerary_data(request)
+    if itinerary_data["status"] == "success":
+        context = {
+            "itinerary": itinerary_data["itinerary"],
+            "firebase_config": settings.FIREBASE_CONFIG,
+        }
+    else:
+        context = {
+            "error": itinerary_data["message"],
+            "firebase_config": settings.FIREBASE_CONFIG,
+        }
+    return render(request, "itinerary_page.html", context)
+
+
+@csrf_exempt
+def store_hotel_details(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+
+        # Store hotel details in session
+        request.session["hotel_details"] = {
+            "hotel_name": data["hotel_name"],
+            "hotel_price": data["hotel_price"],
+        }
+
+        # print session data
+        print(request.session["hotel_details"])
+
+        return JsonResponse({"status": "success"})
+
+    return JsonResponse({"status": "error"}, status=405)
+
+
+@csrf_exempt
+def get_itinerary_data_view(request):
+    try:
+        data = get_itinerary_data(request)
+        return JsonResponse(data)
+    except Exception as e:
+        error_data = {"status": "error", "message": str(e)}
+        return JsonResponse(error_data, status=500)
