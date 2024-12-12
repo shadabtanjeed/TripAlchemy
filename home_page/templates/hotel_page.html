@@ -363,12 +363,12 @@
                 margin-bottom: 0.25rem;
             }
 
-            #loading-container {
+            /* #loading-container {
                 display: flex;
                 justify-content: center;
                 width: 100%;
                 padding: 2rem 0;
-            }
+            } */
 
             .spinner {
                 width: 3.25em;
@@ -479,6 +479,14 @@
             .card-text {
                 margin-bottom: 0.75rem;
             }
+
+            .loading-container-2 {
+                display: flex;
+                justify-content: center;
+                width: 100%;
+                padding: 2rem 0;
+                margin: 0 auto;
+            }
         </style>
 
         <!-- <h2>Select Hotel</h2> -->
@@ -520,10 +528,13 @@
 
             <p><b>Note:</b> The mentioned price is for all the guests (adults).</p>
 
-            <div id="loading-container">
-                <svg class="spinner" viewBox="25 25 50 50">
-                    <circle r="20" cy="50" cx="50"></circle>
-                </svg>
+            <div class="loading-container-2">
+                <!-- Loading Spinner -->
+                <div id="loading-container">
+                    <svg class="spinner" viewBox="25 25 50 50">
+                        <circle r="20" cy="50" cx="50"></circle>
+                    </svg>
+                </div>
             </div>
 
             <div id="hotelOptions" class="row g-4">
@@ -684,7 +695,7 @@
                                         </button>
                                         <button class="btn btn-primary w-100" 
                                                 onclick="selectHotel('${hotel.hotel_id}')">
-                                            <i class="bx bx-check"></i> Select
+                                            <i class=""></i> Select
                                         </button>
                                     </div>
                                 </div>
