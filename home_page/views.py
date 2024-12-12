@@ -817,12 +817,12 @@ def get_geocoding_from_place(request):
     if not place:
         return JsonResponse({"error": "Missing place parameter"}, status=400)
 
-    mapbox_access_token = os.getenv("MAPBOX_ACCESS_TOKEN")
-    if not mapbox_access_token:
-        return JsonResponse({"error": "Missing Mapbox access token"}, status=500)
+    google_api_key = os.getenv("GOOGLE_MAP_API_KEY")
+    if not google_api_key:
+        return JsonResponse({"error": "Missing Google Maps API key"}, status=500)
 
-    endpoint = "https://api.mapbox.com/search/geocode/v6/forward"
-    params = {"q": place, "proximity": "ip", "access_token": mapbox_access_token}
+    endpoint = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {"address": place, "key": google_api_key}
 
     try:
         response = requests.get(endpoint, params=params)
