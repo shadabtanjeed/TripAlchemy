@@ -387,6 +387,18 @@
                 border-color: #4F46E5;
             }
 
+            .btn-custom {
+                background-color: #4F46E5;
+                color: #ffffff;
+                border: none;
+            }
+
+            .btn-custom:hover {
+                background-color: #4338ca;
+                /* Darker shade on hover */
+                color: #ffffff;
+            }
+
             .form-control:focus {
                 border-color: #4F46E5;
                 box-shadow: 0 0 0 0.25rem rgba(79, 70, 229, 0.25);
@@ -461,6 +473,14 @@
             .locations ul li {
                 margin-bottom: 0.5rem;
             }
+
+            #next-button-id {
+                margin-top: 1rem;
+                margin-bottom: 1rem;
+                display: flex;
+                justify-content: flex-end;
+                /* margin-right: 2rem; */
+            }
         </style>
 
 
@@ -506,6 +526,15 @@
             {% endif %}
 
             <div id="map"></div>
+
+            <!-- Add Next Button Here -->
+            <div id="next-button-id">
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-primary" id="next-btn">Next</button>
+                </div>
+            </div>
+
+
         </div>
 
 
@@ -597,6 +626,12 @@
             script.defer = true;
             document.head.appendChild(script);
         }
+
+        // for the next button
+        document.getElementById('next-btn').addEventListener('click', function () {
+            // Implement your functionality here
+            console.log('Next button clicked');
+        });
 
         // Load maps when DOM is ready
         document.addEventListener("DOMContentLoaded", loadGoogleMapsScript);
