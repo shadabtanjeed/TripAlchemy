@@ -711,6 +711,19 @@ def get_itinerary_data(request):
         # Parse the generated text into structured JSON
         itinerary = parse_itinerary(itinerary_text)
 
+        # store the mentioned locations in session
+        mentioned_locations = itinerary.get("mentioned_locations", [])
+
+        # Remove numbering from each location
+        cleaned_locations = [
+            re.sub(r"^\d+\.\s*", "", loc) for loc in mentioned_locations
+        ]
+
+        # Store cleaned locations in session
+        request.session["mentioned_locations"] = cleaned_locations
+
+        print(f"Cleaned mentioned locations: {request.session['mentioned_locations']}")
+
         return {"status": "success", "itinerary": itinerary}
 
     except Exception as e:
@@ -804,7 +817,22 @@ def store_hotel_details(request):
 def get_itinerary_data_view(request):
     try:
         data = get_itinerary_data(request)
-        return JsonResponse(data)
+
+        if data["status"] == "success":
+            itinerary = data["itinerary"]
+
+            # print(f"Generated itinerary: {itinerary}")
+
+            mentioned_locations = itinerary.get("mentioned_locations", [])
+
+            # Store mentioned locations in session
+            request.session["mentioned_locations"] = mentioned_locations
+
+            # print(f"Mentioned locations: {mentioned_locations}")
+
+            return JsonResponse(data)
+        else:
+            return JsonResponse(data, status=500)
     except Exception as e:
         error_data = {"status": "error", "message": str(e)}
         return JsonResponse(error_data, status=500)
@@ -812,22 +840,30 @@ def get_itinerary_data_view(request):
 
 @csrf_exempt
 def get_geocoding_from_place(request):
-    place = request.GET.get("place")
+    # Retrieve mentioned locations from session
+    mentioned_locations = request.session.get("mentioned_locations", [])
 
-    if not place:
-        return JsonResponse({"error": "Missing place parameter"}, status=400)
+    if not mentioned_locations:
+        return JsonResponse(
+            {"error": "No mentioned locations found in session"}, status=400
+        )
 
     google_api_key = os.getenv("GOOGLE_MAP_API_KEY")
     if not google_api_key:
         return JsonResponse({"error": "Missing Google Maps API key"}, status=500)
 
     endpoint = "https://maps.googleapis.com/maps/api/geocode/json"
-    params = {"address": place, "key": google_api_key}
+    geocoding_results = []
 
-    try:
-        response = requests.get(endpoint, params=params)
-        response.raise_for_status()  # Raise an exception for HTTP errors
-        data = response.json()
-        return JsonResponse(data)
-    except requests.RequestException as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    for place in mentioned_locations:
+        params = {"address": place, "key": google_api_key}
+
+        try:
+            response = requests.get(endpoint, params=params)
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            data = response.json()
+            geocoding_results.append({"place": place, "geocoding_data": data})
+        except requests.RequestException as e:
+            geocoding_results.append({"place": place, "error": str(e)})
+
+    return JsonResponse({"results": geocoding_results})
