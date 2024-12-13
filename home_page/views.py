@@ -867,3 +867,14 @@ def get_geocoding_from_place(request):
             geocoding_results.append({"place": place, "error": str(e)})
 
     return JsonResponse({"results": geocoding_results})
+
+
+def map_page(request):
+    google_api_key = os.getenv("GOOGLE_MAP_API_KEY")
+
+    context = {
+        "firebase_config": settings.FIREBASE_CONFIG,
+        "google_api_key": google_api_key,
+    }
+
+    return render(request, "map_page.html", context)

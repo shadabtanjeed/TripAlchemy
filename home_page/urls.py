@@ -32,4 +32,5 @@ urlpatterns = [
         views.get_geocoding_from_place,
         name="get_geocoding_from_place",
     ),
+    path("map/", views.map_page, name="map_page"),
 ]
