@@ -781,10 +781,35 @@ def parse_itinerary(itinerary_text):
 
 def itinerary_page(request):
     itinerary_data = get_itinerary_data(request)
+
     if itinerary_data["status"] == "success":
+
+        google_api_key = os.getenv("GOOGLE_MAP_API_KEY")
+
+        # Call the get_geocoding_from_place function and extract the JSON content
+        geocoding_response = get_geocoding_from_place(request)
+
+        # Parse the JsonResponse content
+        geocoding_data = json.loads(geocoding_response.content)
+
+        # Check if there is an error
+        if geocoding_data.get("error"):
+            # Handle the error case
+            print(f"Error getting geocoding data: {geocoding_data['error']}")
+            return JsonResponse(
+                geocoding_data, status=geocoding_data.get("status", 500)
+            )
+
+        # Get the geocoding results
+        geocoding_results = geocoding_data.get("results", [])
+
+        # Log the geocoding results for debugging
+        # print("Geocoding results:", geocoding_results)
         context = {
             "itinerary": itinerary_data["itinerary"],
             "firebase_config": settings.FIREBASE_CONFIG,
+            "google_api_key": google_api_key,
+            "geocoding_results": json.dumps(geocoding_results),
         }
     else:
         context = {
@@ -803,6 +828,7 @@ def store_hotel_details(request):
         request.session["hotel_details"] = {
             "hotel_name": data["hotel_name"],
             "hotel_price": data["hotel_price"],
+            "hotel_currency": data["hotel_currency"],
         }
 
         # print session data

@@ -269,6 +269,11 @@
                 stroke-dashoffset: -125px;
             }
         }
+
+        #map {
+            height: 600px;
+            width: 100%;
+        }
     </style>
 
     <title>Itinerary Page</title>
@@ -499,7 +504,11 @@
                 {{ error }}
             </div>
             {% endif %}
+
+            <div id="map"></div>
         </div>
+
+
     </div>
 
 
@@ -526,6 +535,71 @@
             document.getElementById('overlay').style.display = 'none';
             document.getElementById('loading-spinner').style.display = 'none';
         });
+
+        // Initialize Google Maps
+        function initMap() {
+            // Create map centered on a default location
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 8,
+                center: { lat: 23.75843021591554, lng: 90.3710433907731 }, // Default center
+            });
+
+            // Parse geocoding results safely
+            let geocodingResults = [];
+            try {
+                geocodingResults = JSON.parse('{{ geocoding_results|escapejs }}');
+            } catch (error) {
+                console.error('Error parsing geocoding results:', error);
+                return;
+            }
+
+            // Check if there are any results
+            if (geocodingResults.length === 0) {
+                console.warn('No geocoding results found');
+                return;
+            }
+
+            // Create a bounds object to adjust map view
+            const bounds = new google.maps.LatLngBounds();
+
+            // Place markers on the map
+            geocodingResults.forEach(result => {
+                try {
+                    // Safely extract location data
+                    const place = result.place;
+                    const location = result.geocoding_data.results[0].geometry.location;
+
+                    // Create marker
+                    const marker = new google.maps.Marker({
+                        position: { lat: location.lat, lng: location.lng },
+                        map: map,
+                        title: place,
+                        // Optional: you can customize marker appearance
+                        // icon: 'path/to/custom/icon.png'
+                    });
+
+                    // Extend bounds to include this marker
+                    bounds.extend(marker.getPosition());
+                } catch (error) {
+                    console.error('Error processing location:', result, error);
+                }
+            });
+
+            // Adjust map to show all markers
+            map.fitBounds(bounds);
+        }
+
+        // Load Google Maps script dynamically
+        function loadGoogleMapsScript() {
+            const script = document.createElement('script');
+            script.src = "https://maps.googleapis.com/maps/api/js?key={{ google_api_key }}&callback=initMap";
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+        // Load maps when DOM is ready
+        document.addEventListener("DOMContentLoaded", loadGoogleMapsScript);
     </script>
 </body>
 

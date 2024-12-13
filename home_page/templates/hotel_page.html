@@ -272,6 +272,11 @@
                 stroke-dashoffset: -125px;
             }
         }
+
+        #map {
+            height: 600px;
+            width: 100%;
+        }
     </style>
 
     <title>Home Page</title>
@@ -785,7 +790,8 @@
                     },
                     body: JSON.stringify({
                         hotel_name: hotel.hotel_name,
-                        hotel_price: hotel.hotel_price.amount
+                        hotel_price: hotel.hotel_price.amount,
+                        hotel_currency: hotel.hotel_price.currency,
                     })
                 });
 
