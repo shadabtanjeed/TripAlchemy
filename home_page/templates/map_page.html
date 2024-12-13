@@ -9,72 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://unpkg.com/boxicons@2.1.2/css/boxicons.min.css" rel="stylesheet" />
 
-    <script type="module">
-        // Import Firebase SDKs
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-        import { getAuth } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-
-        // Initialize Firebase
-        const firebaseConfig = {
-            apiKey: "{{ firebase_config.apiKey }}",
-            authDomain: "{{ firebase_config.authDomain }}",
-            projectId: "{{ firebase_config.projectId }}",
-            storageBucket: "{{ firebase_config.storageBucket }}",
-            messagingSenderId: "{{ firebase_config.messagingSenderId }}",
-            appId: "{{ firebase_config.appId }}"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-
-        // Add logout handler
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('logout-btn').addEventListener('click', async function (e) {
-                e.preventDefault();
-
-                // Show loading spinner and overlay
-                document.getElementById('overlay').style.display = 'block';
-                document.getElementById('loading-spinner').style.display = 'block';
-
-                try {
-                    const auth = getAuth();
-                    await auth.signOut();
-
-                    // Delete the Firebase token cookie
-                    document.cookie = 'firebaseToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-
-                    // Clear session data
-                    fetch('/clear_session/', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        }
-                    });
-
-                    // Redirect to login page
-                    window.location.href = "/user_authentication/login/";
-                } catch (error) {
-                    console.error('Error during logout:', error);
-                    alert('Error during logout. Please try again.');
-
-                    // Hide loading spinner and overlay
-                    document.getElementById('overlay').style.display = 'none';
-                    document.getElementById('loading-spinner').style.display = 'none';
-                }
-            });
-        });
-    </script>
-
-    <!-- map loading script -->
-    <script>
-        async function initMap() {
-            console.log("Maps JavaScript API loaded.");
-        }
-
-        window.initMap = initMap;
-    </script>
-
-
     <style>
         /* Google Fonts - Poppins */
         @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap");
@@ -210,7 +144,6 @@
             /* Above overlay */
         }
 
-
         nav.open~.overlay {
             opacity: 1;
             left: 260px;
@@ -283,14 +216,12 @@
         }
 
         #map {
-            height: 100%;
-        }
-
-        gmp-map {
             height: 600px;
-            /* width: 80%; */
+            width: 100%;
         }
     </style>
+
+
 
     <title>Map Page</title>
 </head>
@@ -363,14 +294,8 @@
     </div>
 
     <div class="content">
-        <gmp-map center="23.75843021591554, 90.3710433907731" zoom="8" map-id="DEMO_MAP_ID" zoom-control>
-            <gmp-advanced-marker position="37.4220656,-122.0840897" title="Mountain View, CA"></gmp-advanced-marker>
-            <gmp-advanced-marker position="47.648994,-122.3503845" title="Seattle, WA"></gmp-advanced-marker>
-            <gmp-advanced-marker position="23.75843021591554, 90.3710433907731" title="NHA Tower"></gmp-advanced-marker>
-        </gmp-map>
+        <div id="map"></div>
     </div>
-
-
 
     <script>
         const navBar = document.querySelector("nav"),
@@ -393,12 +318,71 @@
             document.getElementById('loading-spinner').style.display = 'none';
         });
 
+        // Initialize Google Maps
+        function initMap() {
+            // Create map centered on a default location
+            const map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 8,
+                center: { lat: 23.75843021591554, lng: 90.3710433907731 }, // Default center
+            });
 
+            // Parse geocoding results safely
+            let geocodingResults = [];
+            try {
+                geocodingResults = JSON.parse('{{ geocoding_results|escapejs }}');
+            } catch (error) {
+                console.error('Error parsing geocoding results:', error);
+                return;
+            }
 
+            // Check if there are any results
+            if (geocodingResults.length === 0) {
+                console.warn('No geocoding results found');
+                return;
+            }
+
+            // Create a bounds object to adjust map view
+            const bounds = new google.maps.LatLngBounds();
+
+            // Place markers on the map
+            geocodingResults.forEach(result => {
+                try {
+                    // Safely extract location data
+                    const place = result.place;
+                    const location = result.geocoding_data.results[0].geometry.location;
+
+                    // Create marker
+                    const marker = new google.maps.Marker({
+                        position: { lat: location.lat, lng: location.lng },
+                        map: map,
+                        title: place,
+                        // Optional: you can customize marker appearance
+                        // icon: 'path/to/custom/icon.png'
+                    });
+
+                    // Extend bounds to include this marker
+                    bounds.extend(marker.getPosition());
+                } catch (error) {
+                    console.error('Error processing location:', result, error);
+                }
+            });
+
+            // Adjust map to show all markers
+            map.fitBounds(bounds);
+        }
+
+        // Load Google Maps script dynamically
+        function loadGoogleMapsScript() {
+            const script = document.createElement('script');
+            script.src = "https://maps.googleapis.com/maps/api/js?key={{ google_api_key }}&callback=initMap";
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        }
+
+        // Load maps when DOM is ready
+        document.addEventListener("DOMContentLoaded", loadGoogleMapsScript);
     </script>
-
-    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_api_key }}&libraries=maps,marker&v=beta"
-        defer></script>
 </body>
 
 </html>

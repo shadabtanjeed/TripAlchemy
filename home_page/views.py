@@ -872,9 +872,28 @@ def get_geocoding_from_place(request):
 def map_page(request):
     google_api_key = os.getenv("GOOGLE_MAP_API_KEY")
 
+    # Call the get_geocoding_from_place function and extract the JSON content
+    geocoding_response = get_geocoding_from_place(request)
+
+    # Parse the JsonResponse content
+    geocoding_data = json.loads(geocoding_response.content)
+
+    # Check if there is an error
+    if geocoding_data.get("error"):
+        # Handle the error case
+        print(f"Error getting geocoding data: {geocoding_data['error']}")
+        return JsonResponse(geocoding_data, status=geocoding_data.get("status", 500))
+
+    # Get the geocoding results
+    geocoding_results = geocoding_data.get("results", [])
+
+    # Log the geocoding results for debugging
+    print("Geocoding results:", geocoding_results)
+
     context = {
         "firebase_config": settings.FIREBASE_CONFIG,
         "google_api_key": google_api_key,
+        "geocoding_results": json.dumps(geocoding_results),
     }
 
     return render(request, "map_page.html", context)
