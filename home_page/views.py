@@ -660,22 +660,7 @@ def get_itinerary_data(request):
 
         Mentioned Locations
             1. Location 1
-            2. Location 2 # Process hourly data. The order of variables needs to be the same as requested.
-    hourly = response.Hourly()
-    hourly_ = hourly.Variables(0).ValuesAsNumpy()
-
-    hourly_data = {
-        "date": pd.date_range(
-            start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
-            end=pd.to_datetime(hourly.TimeEnd(), unit="s", utc=True),
-            freq=pd.Timedelta(seconds=hourly.Interval()),
-            inclusive="left",
-        )
-    }
-    hourly_data[""] = hourly_
-
-    hourly_dataframe = pd.DataFrame(data=hourly_data)
-    print(hourly_dataframe)
+            2. Location 2 
             3. Location 3
             ....
 
