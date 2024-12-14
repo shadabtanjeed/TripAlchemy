@@ -1012,21 +1012,33 @@ def store_itinerary_cost(request):
     try:
         data = json.loads(request.body)
         itinerary_cost = data.get("itinerary_cost", None)
+        latitude = data.get("latitude", None)
+        longitude = data.get("longitude", None)
 
-        if itinerary_cost is None:
-            return JsonResponse({"error": "Itinerary cost not provided."}, status=400)
+        if itinerary_cost is None or latitude is None or longitude is None:
+            return JsonResponse({"error": "Required data not provided."}, status=400)
 
         # Convert to float or int as needed
         try:
             itinerary_cost_value = float(itinerary_cost)
+            latitude_value = float(latitude)
+            longitude_value = float(longitude)
         except ValueError:
-            return JsonResponse({"error": "Invalid itinerary cost format."}, status=400)
+            return JsonResponse({"error": "Invalid data format."}, status=400)
 
         # Store in session
         request.session["itinerary_cost"] = itinerary_cost_value
+        request.session["latitude"] = latitude_value
+        request.session["longitude"] = longitude_value
 
         return JsonResponse(
-            {"success": True, "itinerary_cost": itinerary_cost_value}, status=200
+            {
+                "success": True,
+                "itinerary_cost": itinerary_cost_value,
+                "latitude": latitude_value,
+                "longitude": longitude_value,
+            },
+            status=200,
         )
 
     except json.JSONDecodeError:

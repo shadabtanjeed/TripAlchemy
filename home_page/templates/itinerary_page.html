@@ -567,6 +567,9 @@
             document.getElementById('loading-spinner').style.display = 'none';
         });
 
+        // Declare geocodingResults as a global variable
+        let geocodingResults = [];
+
         // Initialize Google Maps
         function initMap() {
             // Create map centered on a default location
@@ -576,7 +579,6 @@
             });
 
             // Parse geocoding results safely
-            let geocodingResults = [];
             try {
                 geocodingResults = JSON.parse('{{ geocoding_results|escapejs }}');
             } catch (error) {
@@ -605,8 +607,6 @@
                         position: { lat: location.lat, lng: location.lng },
                         map: map,
                         title: place,
-                        // Optional: you can customize marker appearance
-                        // icon: 'path/to/custom/icon.png'
                     });
 
                     // Extend bounds to include this marker
@@ -668,9 +668,22 @@
             // Get CSRF token from hidden input field
             const csrfToken = document.getElementById('csrf_token').value;
 
+            // Ensure geocodingResults is not empty and has at least one result
+            if (!geocodingResults || geocodingResults.length === 0) {
+                console.error('No geocoding results available');
+                return;
+            }
+
+            // Extract latitude and longitude from the first marker
+            const firstMarker = geocodingResults[0].geocoding_data.results[0].geometry.location;
+            const latitude = firstMarker.lat;
+            const longitude = firstMarker.lng;
+
             // Prepare data to send
             const data = {
-                'itinerary_cost': totalCostValue
+                'itinerary_cost': totalCostValue,
+                'latitude': latitude,
+                'longitude': longitude
             };
 
             try {
@@ -688,7 +701,7 @@
                     window.location.href = '';
                 } else {
                     console.error('Error storing itinerary cost:', responseData.error);
-                    alert('Failed to store itinerary cost. Please try again.');
+                    // alert('Failed to store itinerary cost. Please try again.');
                 }
             } catch (error) {
                 console.error('Error:', error);
