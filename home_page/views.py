@@ -18,6 +18,8 @@ from retry_requests import retry
 from django.views.decorators.http import require_POST
 from datetime import datetime
 from datetime import timedelta
+import PyCurrency_Converter
+from forex_python.converter import CurrencyRates, RatesNotAvailableError
 
 
 # Custom decorator to verify Firebase ID token
@@ -1182,3 +1184,136 @@ def weather_page(request):
     }
 
     return render(request, "weather_page.html", context)
+
+
+import requests
+
+
+def trip_summary_page(request):
+
+    # get travel details
+    travel_details = request.session.get("travel_details", {})
+    source = travel_details.get("source")
+    destination = travel_details.get("destination")
+    travel_date = travel_details.get("travel_date")
+    return_date = travel_details.get("return_date")
+    passengers = travel_details.get("passengers")
+    budget = travel_details.get("budget")
+
+    # get flight details
+    flight_details = request.session.get("flight_details", {})
+    outbound_airline = flight_details.get("outbound_airline")
+    outbound_flight_no = flight_details.get("outbound_flight_no")
+    inbound_airline = flight_details.get("inbound_airline")
+    inbound_flight_no = flight_details.get("inbound_flight_no")
+    flight_cost = flight_details.get("total_price")
+
+    # get hotel details
+    hotel_details = request.session.get("hotel_details", {})
+    hotel_name = hotel_details.get("hotel_name")
+    hotel_price = hotel_details.get("hotel_price")
+    hotel_currency = hotel_details.get("hotel_currency")
+
+    # get itinerary cost
+    itinerary_cost = request.session.get("itinerary_cost")
+
+    # Convert hotel price to USD if necessary
+    if hotel_currency.lower() != "usd":
+        hotel_currency = hotel_currency.upper()
+        to_currency = "USD"
+
+        try:
+            url = (
+                "https://currency-conversion-and-exchange-rates.p.rapidapi.com/convert"
+            )
+            querystring = {
+                "from": hotel_currency,
+                "to": to_currency,
+                "amount": hotel_price,
+            }
+            headers = {
+                "x-rapidapi-key": os.getenv("RAPID_API_BOOKING_KEY"),
+                "x-rapidapi-host": "currency-conversion-and-exchange-rates.p.rapidapi.com",
+            }
+
+            response = requests.get(url, headers=headers, params=querystring)
+            response_data = response.json()
+
+            if "result" in response_data:
+                hotel_price = response_data["result"]
+                hotel_currency = to_currency
+            else:
+                return JsonResponse(
+                    {
+                        "error": "Currency conversion failed: 'result' key not found in response"
+                    },
+                    status=500,
+                )
+
+        except Exception as e:
+            print(f"Error converting currency: {str(e)}")
+            return JsonResponse(
+                {"error": f"Failed to convert currency: {str(e)}"}, status=500
+            )
+
+    # print the type of the variable flight_cost
+    print(f"Type of flight_cost: {type(flight_cost)}")
+
+    # convert int to string
+    flight_cost = str(flight_cost)
+
+    # Convert flight_cost to float by inserting a decimal point before the last two characters
+
+    if isinstance(flight_cost, str):
+        # Remove any existing decimal points or commas
+        flight_cost = flight_cost.replace(".", "").replace(",", "")
+
+        # Ensure the string is long enough to have decimal places
+        if len(flight_cost) > 2:
+            flight_cost = float(flight_cost[:-2] + "." + flight_cost[-2:])
+        elif len(flight_cost) == 2:
+            flight_cost = float("0." + flight_cost)
+        else:
+            flight_cost = float(flight_cost)
+
+    # Convert other costs to float
+    hotel_price = float(hotel_price)
+    itinerary_cost = float(itinerary_cost)
+    passengers = int(passengers)
+
+    # calculate total cost
+    total_flight_cost = flight_cost * passengers
+    total_hotel_cost = hotel_price * 1
+    total_itinerary_cost = itinerary_cost * passengers
+
+    total_cost = total_flight_cost + total_hotel_cost + total_itinerary_cost
+
+    # store everything into json
+    trip_summary = {
+        "source": source,
+        "destination": destination,
+        "travel_date": travel_date,
+        "return_date": return_date,
+        "passengers": passengers,
+        "budget": budget,
+        "outbound_airline": outbound_airline,
+        "outbound_flight_no": outbound_flight_no,
+        "inbound_airline": inbound_airline,
+        "inbound_flight_no": inbound_flight_no,
+        "flight_cost": flight_cost,
+        "hotel_name": hotel_name,
+        "hotel_price": hotel_price,
+        "hotel_currency": hotel_currency,
+        "itinerary_cost": itinerary_cost,
+        "total_flight_cost": total_flight_cost,
+        "total_hotel_cost": total_hotel_cost,
+        "total_itinerary_cost": total_itinerary_cost,
+        "total_cost": total_cost,
+    }
+
+    context = {
+        "firebase_config": settings.FIREBASE_CONFIG,
+        "trip_summary": trip_summary,
+    }
+
+    return render(request, "trip_summary_page.html", context)

@@ -212,7 +212,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            max-width: 1000px;
+            /* max-width: 1000px; */
             margin: 0 auto;
             /* Center the content horizontally */
         }
@@ -224,7 +224,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
-            z-index: 999;
+            z-index: 1000;
         }
 
         #loading-spinner {
@@ -274,13 +274,14 @@
         }
 
         .container {
-            max-width: 800px;
+            /* max-width: 800px; */
             width: 100%;
             margin: 2rem auto;
             padding: 1rem;
             background-color: #fff;
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
         }
 
         .header {
@@ -294,76 +295,57 @@
             margin: 0;
         }
 
-        .weather-cards-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .stats {
+            z-index: 999;
         }
 
-        .weather-card {
+        .stats,
+        .cost-breakdown {
             display: flex;
-            align-items: center;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            flex: 1 1 calc(33.333% - 1rem);
+            margin: 0.5rem;
             padding: 1rem;
-            margin-bottom: 1rem;
             border: 1px solid #e5e7eb;
             border-radius: 0.5rem;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            /* Added drop shadow */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             background-color: #ffffff;
-            max-width: 800px;
-            /* Reduced width */
-            width: 100%;
-            /* Ensure it takes full width up to max-width */
+            z-index: 999;
         }
 
-        .weather-card img {
-            width: 100px;
-            height: 100px;
-            margin-right: 1rem;
-        }
-
-        .weather-card h2 {
+        .card h2 {
             color: #4F46E5;
-            font-size: 1.5rem;
-            margin: 0.5rem 0;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
         }
 
-        .weather-card p {
+        .card p {
             margin: 0.25rem 0;
             color: #6b7280;
         }
 
-        .weather-card .temperature {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #545862;
-        }
-
-        .weather-card .description {
+        .total-cost {
+            text-align: center;
             font-size: 1.5rem;
             font-weight: 600;
             color: #4F46E5;
+            margin-top: 2rem;
         }
 
-        .weather-card .date {
-            font-size: 1.25rem;
-            color: #35373d;
-            font-weight: 500;
-        }
-
-        .weather-card .uv-index,
-        .weather-card .precipitation {
-            font-size: 0.875rem;
+        .note {
+            text-align: center;
+            font-size: 1rem;
             color: #6b7280;
-        }
-
-        .weather-card .additional-info {
-            margin-left: auto;
-            text-align: right;
+            margin-top: 1rem;
         }
     </style>
 
-    <title>Weather Page</title>
+    <title>Trip Summary</title>
 </head>
 
 <body>
@@ -510,7 +492,7 @@
                 margin-top: 1rem;
                 margin-bottom: 1rem;
                 display: flex;
-                justify-content: flex-end;
+                justify-content: center;
                 /* margin-right: 2rem; */
             }
         </style>
@@ -519,30 +501,64 @@
         <div class="container">
 
             <div class="header">
-                <h1>Weather Forecast in {{ destination }} </h1>
+                <h1>Trip Summary</h1>
             </div>
 
-            <p><b>Note:</b>
-                <br>
-                The weather forecast is available for up to 14 days from the current date.
-                <br>
-                The forecasted weather times are based on the destination's local timezone.
-            </p>
 
-            <br>
 
-            <div id="weather-cards" class="weather-cards-container">
-                <!-- Weather cards will be loaded here -->
+            <div class="stats">
+                <div class="card">
+                    <h2>Travel Details</h2>
+                    <p><strong>From:</strong> {{ trip_summary.source }}</p>
+                    <p><strong>To:</strong> {{ trip_summary.destination }}</p>
+                    <p><strong>Travel Date:</strong> {{ trip_summary.travel_date }}</p>
+                    <p><strong>Return Date:</strong> {{ trip_summary.return_date }}</p>
+                    <p><strong>Travellers:</strong> {{ trip_summary.passengers }}</p>
+                    <p><strong>Budget:</strong> {{ trip_summary.budget|title }}</p>
+                </div>
+
+                <div class="card">
+                    <h2>Flight Details</h2>
+                    <p><strong>Outbound Airline:</strong> {{ trip_summary.outbound_airline }}</p>
+                    <p><strong>Outbound Flight No:</strong> {{ trip_summary.outbound_flight_no }}</p>
+                    <p><strong>Inbound Airline:</strong> {{ trip_summary.inbound_airline }}</p>
+                    <p><strong>Inbound Flight No:</strong> {{ trip_summary.inbound_flight_no }}</p>
+                    <p><strong>Flight Cost (per person):</strong> {{ trip_summary.flight_cost }} USD</p>
+                </div>
+
+                <div class="card">
+                    <h2>Hotel Details</h2>
+                    <p><strong>Hotel Name:</strong> {{ trip_summary.hotel_name }}</p>
+                    <p><strong>Hotel Price:</strong> {{ trip_summary.hotel_price }} {{ trip_summary.hotel_currency }}
+                    </p>
+                </div>
+
+
+            </div>
+
+            <div class="cost-breakdown">
+                <div class="card">
+                    <h2>Cost Breakdown</h2>
+                    <p><strong>Total Flight Cost:</strong> {{ trip_summary.total_flight_cost }} USD </p>
+                    <p><strong>Total Hotel Cost:</strong> {{ trip_summary.total_hotel_cost }} </p>
+                    <p><strong>Total Itinerary Cost:</strong> {{ trip_summary.total_itinerary_cost}} USD</p>
+                </div>
+            </div>
+
+            <div class="total-cost">
+                Total Cost: {{ trip_summary.total_cost }} USD
+            </div>
+
+            <div class="note">
+                <p>Note: The mentioned cost is for all the travelers included.</p>
             </div>
 
             <!-- Add Next Button Here -->
             <div id="next-button-id">
                 <div class="text-center mt-4">
-                    <button type="button" class="btn btn-primary" id="next-btn">Next</button>
+                    <button type="button" class="btn btn-primary" id="next-btn">Confirm</button>
                 </div>
             </div>
-
-
         </div>
 
         <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
@@ -650,7 +666,7 @@
 
             // Get CSRF token from hidden input field
             const csrfToken = document.getElementById('csrf_token').value;
-            window.location.href = '/home/trip_summary/';
+
             console.log('Next button clicked');
         });
 

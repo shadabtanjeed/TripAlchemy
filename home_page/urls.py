@@ -39,4 +39,5 @@ urlpatterns = [
         "store_itinerary_cost/", views.store_itinerary_cost, name="store_itinerary_cost"
     ),
     path("weather/", views.weather_page, name="weather_page"),
+    path("trip_summary/", views.trip_summary_page, name="trip_summary_page"),
 ]
