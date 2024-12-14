@@ -62,14 +62,15 @@
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/shadabtanjeed/Django-Firebase-User-Authentication-Boilerplate
-   cd Django-Firebase-User-Authentication-Boilerplate
+   git clone https://github.com/shadabtanjeed/TripAlchemy.git
+   cd TripAlchemy
    ```
 
    Create virtual environment:
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   source venv/bin/activate
+   # On Windows use `venv\Scripts\activate`
    ```
 
 2. Install dependencies:
