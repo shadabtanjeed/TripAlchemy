@@ -550,11 +550,11 @@ def get_hotels_from_city(request):
         )
         hotel_list_data = hotel_list_response.json()
 
-        # Process only 10 hotels per page
+        # Process only 2 hotels per page
         hotels = []
         all_hotels = hotel_list_data.get("hotels", [])
-        start_idx = (int(page) - 1) * 10
-        end_idx = start_idx + 10
+        start_idx = (int(page) - 1) * 2
+        end_idx = start_idx + 2
 
         # Step 3: Get details for each hotel in the page
         for hotel in all_hotels[start_idx:end_idx]:
