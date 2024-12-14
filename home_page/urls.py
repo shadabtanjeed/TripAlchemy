@@ -38,4 +38,5 @@ urlpatterns = [
     path(
         "store_itinerary_cost/", views.store_itinerary_cost, name="store_itinerary_cost"
     ),
+    path("weather/", views.weather_page, name="weather_page"),
 ]

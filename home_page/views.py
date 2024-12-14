@@ -1142,3 +1142,28 @@ def store_itinerary_cost(request):
         return JsonResponse({"error": "Invalid JSON."}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+def weather_page(request):
+    # call get_weather_data function
+    weather_data = get_weather_data(request)
+
+    # parse the JsonResponse content
+    weather_data = json.loads(weather_data.content)
+
+    # Check if there is an error
+    if weather_data.get("error"):
+        # Handle the error case
+        print(f"Error getting weather data: {weather_data['error']}")
+        return JsonResponse(weather_data, status=weather_data.get("status", 500))
+
+    # Get the weather results
+
+    weather_results = weather_data.get("weather_forecast", [])
+
+    context = {
+        "firebase_config": settings.FIREBASE_CONFIG,
+        "weather_results": json.dumps(weather_results),
+    }
+
+    return render(request, "weather_page.html", context)
