@@ -127,6 +127,7 @@
 
         nav.open .sidebar {
             left: 0;
+            z-index: 1050;
         }
 
         .sidebar .sidebar-content {
@@ -135,10 +136,12 @@
             flex-direction: column;
             justify-content: space-between;
             padding: 30px 16px;
+            z-index: 1050;
         }
 
         .sidebar-content .list {
             list-style: none;
+            z-index: 1050;
         }
 
         .list .nav-link {
@@ -212,7 +215,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            /* max-width: 1000px; */
+            max-width: 1100px;
             margin: 0 auto;
             /* Center the content horizontally */
         }
@@ -279,8 +282,8 @@
             margin: 2rem auto;
             padding: 1rem;
             background-color: #fff;
-            border-radius: 0.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            /* border-radius: 0.5rem; */
+            /* box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); */
 
         }
 
@@ -311,11 +314,12 @@
             flex: 1 1 calc(33.333% - 1rem);
             margin: 0.5rem;
             padding: 1rem;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.5rem;
+
+
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             background-color: #ffffff;
-            z-index: 999;
+            z-index: 800;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .card h2 {
@@ -497,8 +501,18 @@
             }
         </style>
 
+        <section class="overlay"></section>
+
+        <div id="overlay" style="display: none;"></div>
+        <div id="loading-spinner" style="display: none;">
+            <svg viewBox="25 25 50 50">
+                <circle r="20" cy="50" cx="50"></circle>
+            </svg>
+        </div>
 
         <div class="container">
+
+
 
             <div class="header">
                 <h1>Trip Summary</h1>
@@ -585,81 +599,27 @@
 
 
 
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func.apply(this, args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+
+
         // Add cleanup on page unload
         window.addEventListener('beforeunload', function () {
             document.getElementById('overlay').style.display = 'none';
             document.getElementById('loading-spinner').style.display = 'none';
         });
 
-        // Function to format date
-        function formatDate(dateString) {
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            return new Date(dateString).toLocaleDateString(undefined, options);
-        }
-
-        // Function to get weather icon based on description
-        function getWeatherIcon(description) {
-            const icons = {
-                "Clear sky": "https://openweathermap.org/img/wn/01d.png",
-                "Mainly clear": "https://openweathermap.org/img/wn/02d.png",
-                "Partly cloudy": "https://openweathermap.org/img/wn/03d.png",
-                "Overcast": "https://openweathermap.org/img/wn/04d.png",
-                "Foggy": "https://openweathermap.org/img/wn/50d.png",
-                "Depositing rime fog": "https://openweathermap.org/img/wn/50d.png",
-                "Light drizzle": "https://openweathermap.org/img/wn/09d.png",
-                "Moderate drizzle": "https://openweathermap.org/img/wn/09d.png",
-                "Dense drizzle": "https://openweathermap.org/img/wn/09d.png",
-                "Slight rain": "https://openweathermap.org/img/wn/10d.png",
-                "Moderate rain": "https://openweathermap.org/img/wn/10d.png",
-                "Heavy rain": "https://openweathermap.org/img/wn/10d.png",
-                "Slight snow fall": "https://openweathermap.org/img/wn/13d.png",
-                "Moderate snow fall": "https://openweathermap.org/img/wn/13d.png",
-                "Heavy snow fall": "https://openweathermap.org/img/wn/13d.png",
-                "Snow grains": "https://openweathermap.org/img/wn/13d.png",
-                "Slight rain showers": "https://openweathermap.org/img/wn/09d.png",
-                "Moderate rain showers": "https://openweathermap.org/img/wn/09d.png",
-                "Violent rain showers": "https://openweathermap.org/img/wn/09d.png",
-                "Slight snow showers": "https://openweathermap.org/img/wn/13d.png",
-                "Heavy snow showers": "https://openweathermap.org/img/wn/13d.png",
-                "Thunderstorm": "https://openweathermap.org/img/wn/11d.png",
-                "Thunderstorm with light hail": "https://openweathermap.org/img/wn/11d.png",
-                "Thunderstorm with heavy hail": "https://openweathermap.org/img/wn/11d.png"
-            };
-            return icons[description] || "https://openweathermap.org/img/wn/50d.png";
-        }
-
-
-        // Function to load weather cards
-        function loadWeatherCards() {
-            const weatherResults = JSON.parse('{{ weather_results|escapejs }}');
-            const container = document.getElementById('weather-cards');
-
-            weatherResults.forEach(result => {
-                const date = formatDate(result.date);
-                const description = result.weather.description;
-                const icon = getWeatherIcon(description);
-
-                container.innerHTML += `
-                    <div class="weather-card">
-                        <img src="${icon}" alt="${description}">
-                        <div>
-                            <p class="description">${description}</p>
-                            
-                            <p class="temperature">Max: ${result.temperature.max}°C, Min: ${result.temperature.min}°C</p>
-                        </div>
-                        <div class="additional-info">
-                            <p class="date">${date}</p>
-                            <p class="uv-index">UV Index: ${result.uv_index}</p>
-                            <p class="precipitation">Rain: ${result.precipitation.rain}mm, Showers: ${result.precipitation.showers}mm, Snowfall: ${result.precipitation.snowfall}mm</p>
-                        </div>
-                    </div>`;
-            });
-        }
-
-        // Load weather cards when DOM is ready
-        document.addEventListener("DOMContentLoaded", function () {
-            loadWeatherCards();
-        });
 
         // Add event listener to the Next button
         document.getElementById('next-btn').addEventListener('click', async function () {

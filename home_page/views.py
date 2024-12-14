@@ -1288,6 +1288,16 @@ def trip_summary_page(request):
 
     total_cost = total_flight_cost + total_hotel_cost + total_itinerary_cost
 
+    # limit them to max two decimals
+
+    flight_cost = round(flight_cost, 2)
+    hotel_price = round(hotel_price, 2)
+    itinerary_cost = round(itinerary_cost, 2)
+    total_flight_cost = round(total_flight_cost, 2)
+    total_hotel_cost = round(total_hotel_cost, 2)
+    total_itinerary_cost = round(total_itinerary_cost, 2)
+    total_cost = round(total_cost, 2)
+
     # store everything into json
     trip_summary = {
         "source": source,
