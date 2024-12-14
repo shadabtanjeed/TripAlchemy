@@ -35,4 +35,7 @@ urlpatterns = [
     path("map/", views.map_page, name="map_page"),
     path("get_weather_data/", views.get_weather_data, name="get_weather_data"),
     path("get_session_data/", views.get_session_data, name="get_session_data"),
+    path(
+        "store_itinerary_cost/", views.store_itinerary_cost, name="store_itinerary_cost"
+    ),
 ]

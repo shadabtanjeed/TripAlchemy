@@ -1005,3 +1005,31 @@ def get_session_data(request):
     }
 
     return JsonResponse(session_data)
+
+
+@csrf_exempt
+def store_itinerary_cost(request):
+    try:
+        data = json.loads(request.body)
+        itinerary_cost = data.get("itinerary_cost", None)
+
+        if itinerary_cost is None:
+            return JsonResponse({"error": "Itinerary cost not provided."}, status=400)
+
+        # Convert to float or int as needed
+        try:
+            itinerary_cost_value = float(itinerary_cost)
+        except ValueError:
+            return JsonResponse({"error": "Invalid itinerary cost format."}, status=400)
+
+        # Store in session
+        request.session["itinerary_cost"] = itinerary_cost_value
+
+        return JsonResponse(
+            {"success": True, "itinerary_cost": itinerary_cost_value}, status=200
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON."}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

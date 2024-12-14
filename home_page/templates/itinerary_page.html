@@ -537,6 +537,8 @@
 
         </div>
 
+        <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
+
 
     </div>
 
@@ -627,9 +629,72 @@
             document.head.appendChild(script);
         }
 
-        // for the next button
-        document.getElementById('next-btn').addEventListener('click', function () {
-            // Implement your functionality here
+        // Function to get CSRF token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Add event listener to the Next button
+        document.getElementById('next-btn').addEventListener('click', async function () {
+            // Extract the total cost text
+            const totalCostElement = document.querySelector('.total-cost');
+            if (!totalCostElement) {
+                console.error('Total cost element not found.');
+                return;
+            }
+
+            const totalCostText = totalCostElement.textContent || totalCostElement.innerText;
+            // Use regex to extract the numerical value
+            const match = totalCostText.match(/(\d+(\.\d+)?)/);
+            if (!match) {
+                console.error('No numerical value found in total cost.');
+                return;
+            }
+
+            const totalCostValue = match[1]; // "150" from "150 USD"
+
+            // Get CSRF token from hidden input field
+            const csrfToken = document.getElementById('csrf_token').value;
+
+            // Prepare data to send
+            const data = {
+                'itinerary_cost': totalCostValue
+            };
+
+            try {
+                const response = await fetch('/home/store_itinerary_cost/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const responseData = await response.json();
+                if (responseData.status === 'success') {
+                    window.location.href = '';
+                } else {
+                    console.error('Error storing itinerary cost:', responseData.error);
+                    alert('Failed to store itinerary cost. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while storing itinerary data.');
+            }
+
             console.log('Next button clicked');
         });
 
