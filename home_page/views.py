@@ -946,13 +946,18 @@ def get_weather_data(request):
             status=400,
         )
 
-    # check if checkout is within 14 days from current date or not
+    # Check if checkout is within 14 days from current date or not
     checkout_date = datetime.strptime(check_out_raw, "%Y-%m-%d")
     days_until_checkout = (checkout_date - current_date).days
 
-    # if not, change checkout date to 14 days from checkin date
     if days_until_checkout < 0 or days_until_checkout > 14:
-        check_out_raw = (checkin_date + timedelta(days=14)).strftime("%Y-%m-%d")
+        print("Checkout date is not within 14 days from the current date.")
+        # Set checkout to exactly 13 days after check-in
+        checkout_date = current_date + timedelta(days=14)
+        check_out_raw = checkout_date.strftime("%Y-%m-%d")
+
+    # Now print the checkin and checkout dates after possible modification
+    print(f"Check-in: {check_in_raw}, Check-out: {check_out_raw}")
 
     # Setup the Open-Meteo API client with cache and retry on error
     cache_session = requests_cache.CachedSession(".cache", expire_after=3600)
@@ -1161,9 +1166,19 @@ def weather_page(request):
 
     weather_results = weather_data.get("weather_forecast", [])
 
+    # get the destination city and travel dates
+
+    travel_details = request.session.get("travel_details", {})
+    destination = travel_details.get("destination")
+    check_in = travel_details.get("travel_date")
+    check_out = travel_details.get("return_date")
+
     context = {
         "firebase_config": settings.FIREBASE_CONFIG,
         "weather_results": json.dumps(weather_results),
+        "destination": destination,
+        "check_in": check_in,
+        "check_out": check_out,
     }
 
     return render(request, "weather_page.html", context)

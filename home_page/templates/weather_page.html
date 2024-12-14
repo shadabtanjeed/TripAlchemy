@@ -336,7 +336,7 @@
         .weather-card .temperature {
             font-size: 1.25rem;
             font-weight: 600;
-            color: #4F46E5;
+            color: #545862;
         }
 
         .weather-card .description {
@@ -346,8 +346,9 @@
         }
 
         .weather-card .date {
-            font-size: 1rem;
-            color: #6b7280;
+            font-size: 1.25rem;
+            color: #545862;
+            font-weight: 500;
         }
 
         .weather-card .uv-index,
@@ -518,7 +519,7 @@
         <div class="container">
 
             <div class="header">
-                <h1>Weather Forecast</h1>
+                <h1>Weather Forecast in {{ destination }} </h1>
             </div>
 
             <p><b>Note:</b>
@@ -627,10 +628,11 @@
                         <img src="${icon}" alt="${description}">
                         <div>
                             <p class="description">${description}</p>
-                            <p class="date">${date}</p>
+                            
                             <p class="temperature">Max: ${result.temperature.max}°C, Min: ${result.temperature.min}°C</p>
                         </div>
                         <div class="additional-info">
+                            <p class="date">${date}</p>
                             <p class="uv-index">UV Index: ${result.uv_index}</p>
                             <p class="precipitation">Rain: ${result.precipitation.rain}mm, Showers: ${result.precipitation.showers}mm, Snowfall: ${result.precipitation.snowfall}mm</p>
                         </div>
