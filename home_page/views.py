@@ -1,3 +1,5 @@
+import random
+import string
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -20,6 +22,7 @@ from datetime import datetime
 from datetime import timedelta
 import PyCurrency_Converter
 from forex_python.converter import CurrencyRates, RatesNotAvailableError
+from firebase_admin import firestore
 
 
 # Custom decorator to verify Firebase ID token
@@ -1327,3 +1330,111 @@ def trip_summary_page(request):
     }
 
     return render(request, "trip_summary_page.html", context)
+
+
+@csrf_exempt  # Add this decorator
+def store_trip_into_firebase(request):
+    if request.method == "POST":
+        try:
+            # Get username
+            username = request.session.get("username")
+            if not username:
+                return JsonResponse({"error": "User not logged in"}, status=401)
+
+            # Get travel details
+            travel_details = request.session.get("travel_details", {})
+            source = travel_details.get("source")
+            destination = travel_details.get("destination")
+            travel_date = travel_details.get("travel_date")
+            return_date = travel_details.get("return_date")
+            passengers = travel_details.get("passengers")
+            budget = travel_details.get("budget")
+
+            # Get flight details
+            flight_details = request.session.get("flight_details", {})
+            flight_cost = flight_details.get("total_price")
+
+            # Get hotel details
+            hotel_details = request.session.get("hotel_details", {})
+            hotel_name = hotel_details.get("hotel_name")
+            hotel_price = float(hotel_details.get("hotel_price", 0))
+            total_hotel_cost = hotel_price
+
+            # Get itinerary cost
+            itinerary_cost = request.session.get("itinerary_cost")
+
+            # convert int to string
+            flight_cost = str(flight_cost)
+
+            # Convert flight_cost to float by inserting a decimal point before the last two characters
+
+            if isinstance(flight_cost, str):
+                # Remove any existing decimal points or commas
+                flight_cost = flight_cost.replace(".", "").replace(",", "")
+
+                # Ensure the string is long enough to have decimal places
+                if len(flight_cost) > 2:
+                    flight_cost = float(flight_cost[:-2] + "." + flight_cost[-2:])
+                elif len(flight_cost) == 2:
+                    flight_cost = float("0." + flight_cost)
+                else:
+                    flight_cost = float(flight_cost)
+
+            # Convert other costs to float
+            hotel_price = float(hotel_price)
+            itinerary_cost = float(itinerary_cost)
+            passengers = int(passengers)
+
+            # calculate total cost
+            total_flight_cost = flight_cost * passengers
+            total_hotel_cost = hotel_price * 1
+            total_itinerary_cost = itinerary_cost * passengers
+
+            total_cost = total_flight_cost + total_hotel_cost + total_itinerary_cost
+
+            # limit them to max two decimals
+
+            flight_cost = round(flight_cost, 2)
+            hotel_price = round(hotel_price, 2)
+            itinerary_cost = round(itinerary_cost, 2)
+            total_flight_cost = round(total_flight_cost, 2)
+            total_hotel_cost = round(total_hotel_cost, 2)
+            total_itinerary_cost = round(total_itinerary_cost, 2)
+            total_cost = round(total_cost, 2)
+
+            # Generate a random trip ID
+            trip_id = "".join(
+                random.choices(string.ascii_uppercase + string.digits, k=10)
+            )
+
+            # Get Firestore client
+            db = firestore.client()
+
+            # Create trip document
+            trip_data = {
+                "username": username,
+                "source": source,
+                "destination": destination,
+                "travel_date": travel_date,
+                "return_date": return_date,
+                "passengers": passengers,
+                "budget": budget,
+                "total_flight_cost": total_flight_cost,
+                "hotel_name": hotel_name,
+                "total_hotel_cost": total_hotel_cost,
+                "total_itinerary_cost": total_itinerary_cost,
+                "total_cost": total_cost,
+                "created_at": firestore.SERVER_TIMESTAMP,
+                "trip_id": trip_id,
+            }
+
+            # Add trip document to Firestore
+            db.collection("trips").document(trip_id).set(trip_data)
+
+            return JsonResponse({"status": "success", "trip_id": trip_id})
+
+        except Exception as e:
+            print(f"Error storing trip: {str(e)}")  # For debugging
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)

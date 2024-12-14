@@ -347,6 +347,105 @@
             color: #6b7280;
             margin-top: 1rem;
         }
+
+        /* Toast message styles */
+        .toast {
+            visibility: hidden;
+            width: 400px;
+            height: 120px;
+            margin: auto;
+            background-color: #ffffff;
+            color: #fff;
+            text-align: center;
+            text-size-adjust: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            margin: auto;
+            font-size: 17px;
+            white-space: nowrap;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1050;
+            /* above everything */
+        }
+
+        .toast #desc {
+            color: #000000;
+            padding: 16px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .toast #okBtn {
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 2px;
+        }
+
+        .toast #okBtn:hover {
+            background-color: #423bbd;
+        }
+
+
+
+        #loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+        #loading-spinner svg {
+            width: 3.25em;
+            transform-origin: center;
+            animation: rotate4 2s linear infinite;
+        }
+
+        #loading-spinner circle {
+            fill: none;
+            stroke: #4F46E5;
+            stroke-width: 2;
+            stroke-dasharray: 1, 200;
+            stroke-dashoffset: 0;
+            stroke-linecap: round;
+            animation: dash4 1.5s ease-in-out infinite;
+        }
+
+        @keyframes rotate4 {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes dash4 {
+            0% {
+                stroke-dasharray: 1, 200;
+                stroke-dashoffset: 0;
+            }
+
+            50% {
+                stroke-dasharray: 89, 200;
+                stroke-dashoffset: -35px;
+            }
+
+            100% {
+                stroke-dasharray: 89, 200;
+                stroke-dashoffset: -124px;
+            }
+        }
     </style>
 
     <title>Trip Summary</title>
@@ -575,6 +674,11 @@
             </div>
         </div>
 
+        <div id="toast" class="toast">
+            <div id="desc">Trip Stored Successfully!</div>
+            <button id="okBtn">OK</button>
+        </div>
+
         <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
 
 
@@ -621,14 +725,68 @@
         });
 
 
-        // Add event listener to the Next button
         document.getElementById('next-btn').addEventListener('click', async function () {
+            try {
+                // Show loading spinner
+                document.getElementById('overlay').style.display = 'block';
+                document.getElementById('loading-spinner').style.display = 'block';
 
-            // Get CSRF token from hidden input field
-            const csrfToken = document.getElementById('csrf_token').value;
+                // Get CSRF token from hidden input field
+                const csrfToken = document.getElementById('csrf_token').value;
 
-            console.log('Next button clicked');
+                // Make API call to store trip in Firebase
+                const response = await fetch('/home/store_trip_into_firebase/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+
+                const data = await response.json();
+
+                // Always hide loading elements
+                document.getElementById('loading-spinner').style.display = 'none';
+
+                if (data.status === 'success') {
+                    setTimeout(() => {
+                        const toast = document.getElementById("toast");
+                        toast.style.visibility = "visible";
+                        toast.style.display = "block";
+
+                        const okBtn = document.getElementById("okBtn");
+                        okBtn.onclick = function () {
+                            toast.style.visibility = "hidden";
+                            document.getElementById('overlay').style.display = 'none';
+                            // Optional: Redirect to another page after clicking OK
+                            // window.location.href = '/home/';
+                        };
+                    }, 100);
+                } else {
+                    document.getElementById('overlay').style.display = 'none';
+                    alert('Error: ' + data.error);
+                    throw new Error(data.error || 'Failed to store trip');
+                }
+            } catch (error) {
+                // Hide both overlay and spinner on error
+                document.getElementById('overlay').style.display = 'none';
+                document.getElementById('loading-spinner').style.display = 'none';
+                console.error('Error:', error);
+                alert('Failed to store trip: ' + error.message);
+            }
         });
+
+        // Function to show toast message
+        // function showToast() {
+        //     const toast = document.getElementById("toast");
+        //     toast.style.visibility = "visible";
+        //     document.getElementById("okBtn").onclick = function () {
+        //         toast.style.visibility = "hidden";
+        //         document.getElementById('overlay').style.display = 'none';
+        //         // Optional: Redirect to another page after clicking OK
+        //         window.location.href = '/home/';
+        //     };
+        // }
 
     </script>
 </body>

@@ -40,4 +40,9 @@ urlpatterns = [
     ),
     path("weather/", views.weather_page, name="weather_page"),
     path("trip_summary/", views.trip_summary_page, name="trip_summary_page"),
+    path(
+        "store_trip_into_firebase/",
+        views.store_trip_into_firebase,
+        name="store_trip_into_firebase",
+    ),
 ]
