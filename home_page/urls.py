@@ -33,4 +33,6 @@ urlpatterns = [
         name="get_geocoding_from_place",
     ),
     path("map/", views.map_page, name="map_page"),
+    path("get_weather_data/", views.get_weather_data, name="get_weather_data"),
+    path("get_session_data/", views.get_session_data, name="get_session_data"),
 ]
