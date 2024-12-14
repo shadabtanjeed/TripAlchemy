@@ -16,6 +16,8 @@ import openmeteo_requests
 import requests_cache
 from retry_requests import retry
 from django.views.decorators.http import require_POST
+from datetime import datetime
+from datetime import timedelta
 
 
 # Custom decorator to verify Firebase ID token
@@ -923,6 +925,35 @@ def map_page(request):
 
 
 def get_weather_data(request):
+    user_latitude = request.session.get("latitude")
+    user_longitude = request.session.get("longitude")
+
+    # print the latitude and longitude
+    print(f"Latitude: {user_latitude}, Longitude: {user_longitude}")
+
+    travel_details = request.session.get("travel_details", {})
+    check_in_raw = travel_details.get("travel_date")
+    check_out_raw = travel_details.get("return_date")
+
+    # check if checkin is within 14 days from current date or not
+    checkin_date = datetime.strptime(check_in_raw, "%Y-%m-%d")
+    current_date = datetime.now()
+    days_until_checkin = (checkin_date - current_date).days
+
+    if days_until_checkin < 0 or days_until_checkin > 14:
+        return JsonResponse(
+            {"error": "Check-in date should be within 14 days from the current date."},
+            status=400,
+        )
+
+    # check if checkout is within 14 days from current date or not
+    checkout_date = datetime.strptime(check_out_raw, "%Y-%m-%d")
+    days_until_checkout = (checkout_date - current_date).days
+
+    # if not, change checkout date to 14 days from checkin date
+
+    if days_until_checkout < 0 or days_until_checkout > 14:
+        check_out_raw = (checkin_date + timedelta(days=14)).strftime("%Y-%m-%d")
 
     # Setup the Open-Meteo API client with cache and retry on error
     cache_session = requests_cache.CachedSession(".cache", expire_after=3600)
@@ -933,8 +964,8 @@ def get_weather_data(request):
     # The order of variables in hourly or daily is important to assign them correctly below
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
-        "latitude": 52.52,
-        "longitude": 13.41,
+        "latitude": user_latitude,
+        "longitude": user_longitude,
         "daily": [
             "weather_code",
             "temperature_2m_max",
@@ -947,8 +978,8 @@ def get_weather_data(request):
             "snowfall_sum",
         ],
         "timezone": "auto",
-        "start_date": "2024-12-22",
-        "end_date": "2024-12-28",
+        "start_date": check_in_raw,
+        "end_date": check_out_raw,
     }
     responses = openmeteo.weather_api(url, params=params)
 
