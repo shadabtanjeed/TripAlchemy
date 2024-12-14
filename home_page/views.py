@@ -951,7 +951,6 @@ def get_weather_data(request):
     days_until_checkout = (checkout_date - current_date).days
 
     # if not, change checkout date to 14 days from checkin date
-
     if days_until_checkout < 0 or days_until_checkout > 14:
         check_out_raw = (checkin_date + timedelta(days=14)).strftime("%Y-%m-%d")
 
@@ -1021,9 +1020,76 @@ def get_weather_data(request):
     daily_data["snowfall_sum"] = daily_snowfall_sum
 
     daily_dataframe = pd.DataFrame(data=daily_data)
-    print(daily_dataframe)
 
-    return JsonResponse({"status": "success"})
+    # Convert timestamp to readable date and create a structured response
+    daily_dataframe["date"] = pd.to_datetime(
+        daily_dataframe["date"], unit="ms"
+    ).dt.strftime("%Y-%m-%d")
+
+    # Map weather codes to human-readable descriptions
+    weather_code_map = {
+        0: "Clear sky",
+        1: "Mainly clear",
+        2: "Partly cloudy",
+        3: "Overcast",
+        45: "Foggy",
+        48: "Depositing rime fog",
+        51: "Light drizzle",
+        53: "Moderate drizzle",
+        55: "Dense drizzle",
+        61: "Slight rain",
+        63: "Moderate rain",
+        65: "Heavy rain",
+        71: "Slight snow fall",
+        73: "Moderate snow fall",
+        75: "Heavy snow fall",
+        77: "Snow grains",
+        80: "Slight rain showers",
+        81: "Moderate rain showers",
+        82: "Violent rain showers",
+        85: "Slight snow showers",
+        86: "Heavy snow showers",
+        95: "Thunderstorm",
+        96: "Thunderstorm with light hail",
+        99: "Thunderstorm with heavy hail",
+    }
+
+    # Prepare structured response
+    weather_data = []
+    for _, row in daily_dataframe.iterrows():
+        weather_data.append(
+            {
+                "date": row["date"],
+                "weather": {
+                    "code": int(row["weather_code"]),
+                    "description": weather_code_map.get(
+                        int(row["weather_code"]), "Unknown"
+                    ),
+                },
+                "temperature": {
+                    "max": round(row["temperature_2m_max"], 1),
+                    "min": round(row["temperature_2m_min"], 1),
+                    "apparent_max": round(row["apparent_temperature_max"], 1),
+                    "apparent_min": round(row["apparent_temperature_min"], 1),
+                },
+                "uv_index": round(row["uv_index_max"], 1),
+                "precipitation": {
+                    "rain": round(row["rain_sum"], 1),
+                    "showers": round(row["showers_sum"], 1),
+                    "snowfall": round(row["snowfall_sum"], 1),
+                },
+            }
+        )
+
+    # Return the structured response
+    return JsonResponse(
+        {
+            "status": "success",
+            "location": {"latitude": user_latitude, "longitude": user_longitude},
+            "travel_dates": {"check_in": check_in_raw, "check_out": check_out_raw},
+            "weather_forecast": weather_data,
+        }
+    )
 
 
 def get_session_data(request):
