@@ -13,6 +13,8 @@ def index(request):
 
 
 def login_view(request):
+    # delete everything in session
+    request.session.flush()
 
     return render(
         request, "login_page.html", {"firebase_config": settings.FIREBASE_CONFIG}
